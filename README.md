@@ -1,6 +1,6 @@
 # Your Vulnerability Dashboard
 
-Vulnerability Dashboard is a complete UK Digital T Level classroom project: a readable Flask reference implementation plus a week-long guided workbook for students with minimal technical experience. Students learn to orient themselves on Ubuntu, use Git, build pages, understand JSON/APIs, normalise/cache vulnerability data, test failure paths, review security and deploy with Gunicorn, systemd and Nginx.
+Vulnerability Dashboard is a complete UK Digital T Level classroom project: a readable Flask reference implementation plus a week-long guided workbook designed for a broad range of learners. Students learn to orient themselves on Ubuntu, use Git, build pages, understand JSON/APIs, normalise/cache vulnerability data, test failure paths, review security and deploy with Gunicorn, systemd and Nginx.
 
 ## Start with the workbook
 Read [STUDENT_GUIDE.md](STUDENT_GUIDE.md) from Lesson 1 onwards. It contains lessons, command reference, guided work, controlled experiments, errors, checkpoints, 12 challenge cards, responsible-AI guidance, a team option, final demo and 20 assessed extensions. [TEACHING_NOTES.md](TEACHING_NOTES.md) is optional delivery support; students can complete the workbook independently.

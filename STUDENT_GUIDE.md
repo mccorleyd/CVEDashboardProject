@@ -1,6 +1,6 @@
 # Vulnerability Dashboard student workbook
 
-**Audience:** Digital T Level students who are new to servers, Python and web development.
+**Audience:** Digital T Level students building and deploying a security dashboard.
 **Project outcome:** a small, accessible security dashboard running on an Ubuntu server.
 **How long:** a guided week of lessons plus optional extensions. Plan the lessons across at least five study sessions; do not rush server-security steps.
 
@@ -76,8 +76,30 @@ By the end, you can explain CVE, CWE, CVSS, OWASP and CISA KEV in simple languag
 ## Concept overview
 A **CVE** is an identifier such as `CVE-2026-0001` for a publicly reported vulnerability. A **CWE** names a class of weakness, for example a type of input-handling mistake. **CVSS** gives a standard technical score, normally 0–10. It is useful, but it does not know your organisation's systems, data or controls. **OWASP** publishes application-security education. **CISA KEV** is a US catalogue of vulnerabilities known to be exploited; absence from the catalogue is *not* proof that no exploitation exists.
 
-## Worked example
-Compare two fictional records: one critical record for software an organisation does not use and one high record in a public, used system with KEV evidence. The second may be investigated first. Notice why “highest score first” is an incomplete rule.
+## Worked example — deciding what to look at first
+Read the two **invented** records below. They are teaching data, not real vulnerabilities and not instructions to attack anything.
+
+|Question|Record A: CVE-2026-90001|Record B: CVE-2026-90002|
+|---|---|---|
+|CVSS severity|Critical, 9.8|High, 8.1|
+|CISA KEV status|Not listed|Listed as known exploited|
+|Product|Northstar Archive Server 4|BrightDesk Remote Support 7|
+|Does the organisation use it?|No: asset list and software inventory show no installation|Yes: it is used on a public helpdesk server|
+|Internet exposure|Not applicable|Public login page is reachable|
+|Fix available?|Unknown|Vendor patch is available|
+|First action|Record the result and confirm the inventory is current|Assign urgent investigation: confirm version, restrict exposure if appropriate, test/apply the vendor patch under change control|
+
+A quick ranking by score alone would put Record A first because 9.8 is larger than 8.1. A security team instead uses several signals. Record B has a used product, public exposure, a known-exploited signal and a patch. It may therefore be investigated first. This is not an automatic rule: the team still checks its own systems, service importance, compensating controls and change window.
+
+### Try the reasoning yourself
+For each statement, decide whether it is **true**, **false**, or **not enough information**:
+
+1. “Record A is harmless because the organisation does not use it.”
+2. “Record B is definitely being exploited on this organisation's server.”
+3. “A CVSS score tells us whether a patch will be easy to apply.”
+4. “CISA KEV is a useful prioritisation signal.”
+
+**Answers:** 1 is *not enough information*: the inventory might be incomplete, so record the check. 2 is *false*: KEV means exploitation is known in the wider world, not necessarily on this server. 3 is *false*: CVSS is not a change-management measure. 4 is *true*, but it must be combined with local context.
 
 ## Tasks
 1. Write an audience statement: “This dashboard helps ___ decide ___ because ___.”
@@ -89,7 +111,7 @@ Compare two fictional records: one critical record for software an organisation 
 Show the sketch and decision record. Explain: “Why might a high CVSS score not be first priority?”
 **Common mistake:** saying KEV means every organisation is affected. It means there is exploitation evidence, not that your systems are vulnerable.
 
-**Stretch:** write a 50-word explanation of Vulnerability Dashboard for a school governor with no technical background.
+**Stretch:** write a 50-word explanation of Vulnerability Dashboard for a non-specialist school governor.
 
 ---
 
@@ -683,3 +705,317 @@ button.addEventListener('click', () => {
 });
 ```
 `const` creates a named value; `querySelector` finds an element; `addEventListener` waits for a click; the arrow function runs after the click. The real code toggles rather than permanently sets the state. Find it in `dashboard.js` and test the Menu using keyboard.
+
+---
+
+# Appendix F — Complete worked examples and practice data
+
+This appendix supplies the missing “see one first” stage for the main lessons. Everything labelled **invented** is made-up data for learning. Do not search for, report, scan for, or attempt to exploit these example identifiers/products. The aim is to practise reading, transforming and presenting information safely.
+
+## F1. From a browser request to a page: one complete example
+
+### Overview
+When you type an address into a browser, the browser requests a resource. The server responds with a status, headers and a body. The page you see is not “inside” Flask: Flask sends HTML to the browser, then the browser reads CSS and JavaScript as separate requests.
+
+### Example request and response
+
+```text
+Browser request
+GET /health HTTP/1.1
+Host: 127.0.0.1:5000
+
+Server response
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"status":"ok"}
+```
+
+`GET` asks to read a resource. `/health` is the route. `200 OK` means the server completed the request successfully. `Content-Type: application/json` says the body is JSON. The body is a tiny object with one key, `status`.
+
+### Practise
+Start the app, then run these commands one at a time:
+
+```bash
+curl -i http://127.0.0.1:5000/health
+curl -i http://127.0.0.1:5000/not-a-page
+curl -I http://127.0.0.1:5000/
+```
+
+The first should be 200. The second should be 404, which means the route does not exist. The third uses `-I` to request headers only. Find `Content-Security-Policy`, `Referrer-Policy` and `X-Content-Type-Options`. A header is not a substitute for safe code, but it adds a browser-side layer of protection.
+
+**Checkpoint:** write only the three status numbers you observed and what each means.
+**If it fails:** first check that the app terminal is still running; then check the exact address and port; then use `ss -tulpn | grep 5000`.
+
+## F2. Read JSON slowly: object, list and nested value
+
+### Overview
+JSON uses braces `{}` for an object: named values such as `"id": "CVE-..."`. It uses square brackets `[]` for an ordered list. Indentation makes nesting easier to see but does not change the data. A comma separates items. JSON uses `true`, `false` and `null`, not Python's `True`, `False` and `None`.
+
+### Invented small response
+
+```json
+{
+  "totalResults": 2,
+  "vulnerabilities": [
+    {
+      "cve": {
+        "id": "CVE-2026-90001",
+        "published": "2026-03-01T09:30:00.000",
+        "descriptions": [
+          {"lang": "en", "value": "Invented archive service example."},
+          {"lang": "fr", "value": "Exemple inventé."}
+        ],
+        "metrics": {
+          "cvssMetricV31": [
+            {"cvssData": {"version": "3.1", "baseScore": 9.8, "baseSeverity": "CRITICAL"}}
+          ]
+        }
+      }
+    },
+    {
+      "cve": {
+        "id": "CVE-2026-90002",
+        "descriptions": [],
+        "metrics": {}
+      }
+    }
+  ]
+}
+```
+
+Follow the first score with this route: root object → `vulnerabilities` list → first item `[0]` → `cve` object → `metrics` object → `cvssMetricV31` list → first item `[0]` → `cvssData` object → `baseScore`. This explains why API code can look long even when the final displayed value is only `9.8`.
+
+### Practise with Python
+Create a scratch file named `read_json.py` in `~/dashboard-lab`:
+
+```python
+import json
+from pathlib import Path
+
+text = Path("tests/fixtures/nvd_sample.json").read_text()
+payload = json.loads(text)
+first = payload["vulnerabilities"][0]["cve"]
+print(first["id"])
+print(first["descriptions"][0]["value"])
+print(first["metrics"]["cvssMetricV31"][0]["cvssData"]["baseScore"])
+```
+
+This is a **provided learning example**. `import` makes a module available; `Path` represents a file path; `.read_text()` reads text; `json.loads()` changes JSON text into Python dictionaries/lists; square brackets select a known key or list position. Run `python read_json.py` from a folder where the relative fixture path is correct, or replace it with an absolute path.
+
+**Experiment 1:** change `[0]` to `[1]` for the second record and observe the error when it has no description. Restore it.
+**Experiment 2:** print `payload["totalResults"]`. Explain why this is easier: it is directly inside the root object.
+**Likely error:** `KeyError` means a dictionary key is missing; `IndexError` means a requested list position is absent. Robust application code uses `.get` and fallback values where external data may be incomplete.
+
+## F3. Normalisation worked example: complex input to small model
+
+### Overview
+Normalisation creates a dependable internal shape. It is like moving ingredients from differently shaped packets into labelled containers before cooking. Templates then use one predictable list of fields instead of needing to understand NVD's full format.
+
+### Input and output comparison
+
+|Upstream concept|Possible NVD location|Internal dashboard value|
+|---|---|---|
+|Identifier|`cve.id`|`id`|
+|English description|one item in `cve.descriptions`|`description`|
+|Base score|one CVSS metric version|`score`|
+|Severity|same metric|`severity`|
+|Weakness names|nested `weaknesses` descriptions|`weaknesses` list|
+|External link|built from identifier|`nvd_url`|
+
+For the invented first record, the normalised result looks like:
+
+```python
+{
+    "id": "CVE-2026-90001",
+    "description": "Invented archive service example.",
+    "published": "2026-03-01T09:30:00.000",
+    "last_modified": None,
+    "score": 9.8,
+    "severity": "CRITICAL",
+    "cvss_version": "3.1",
+    "weaknesses": [],
+    "nvd_url": "https://nvd.nist.gov/vuln/detail/CVE-2026-90001",
+    "known_exploited": False,
+    "kev_details": None,
+}
+```
+
+Notice `None`: Python uses it for an absent value. The template displays “Not supplied” or “Not scored” rather than inventing a value. An absent score is not zero.
+
+### Practise without editing the app
+
+```bash
+python - <<'PY'
+import json
+from pathlib import Path
+from services.normalisers import normalise_response
+
+source = json.loads(Path('tests/fixtures/nvd_sample.json').read_text())
+for cve in normalise_response(source):
+    print(cve['id'], '|', cve['severity'], '|', cve['score'])
+PY
+```
+
+Read the output. Then open `services/normalisers.py` alongside `tests/fixtures/nvd_sample.json`. Highlight each place the normaliser protects against missing values. Do not change it yet.
+
+**Checkpoint:** explain why a page template should receive the small model rather than the whole NVD response.
+
+## F4. Cache timeline worked example
+
+### Overview
+A cache has a timestamp. The **time to live** (TTL) is the maximum age considered fresh. The app must distinguish fresh cached data, live data and stale fallback data so users are not misled.
+
+Assume `CACHE_TTL_SECONDS=1800` (30 minutes):
+
+|Time|What happens|What the user should see|
+|---|---|---|
+|09:00|NVD succeeds; 20 normalised records are written|“Last refreshed 09:00”; normal dashboard|
+|09:10|Page reloads; cache is 10 minutes old|Same data quickly; no NVD request needed|
+|09:31|Cache is 31 minutes old; NVD succeeds|New cache written; normal dashboard|
+|10:02|Cache is 31 minutes old; NVD times out|Older records plus clear “Showing older cached data” warning|
+|10:05|No cache exists; NVD fails|Friendly unavailable-data message, not traceback|
+
+The cache file contains data and `fetched_at`; it must never contain the API key. Atomic replacement means the application writes a temporary completed JSON file and replaces the old one only when ready.
+
+### Practise
+Run the test that demonstrates stale fallback:
+
+```bash
+pytest -q tests/test_cache.py -vv
+```
+
+`-vv` gives more test names/detail. Read the test before and after running it. Find the mock that deliberately makes NVD fail. This is safer than turning off a real network connection.
+
+**Reflection:** Why is “always show the last result with no warning” misleading?
+**Answer:** users could make a time-sensitive decision believing old data is current.
+
+## F5. Safe text rendering worked example
+
+### Overview
+An API description is data from outside the application. It may contain characters with special meaning in HTML. Treat it as text. The dashboard's JavaScript creates a paragraph and sets `.textContent`; it does not feed untrusted data into `.innerHTML`.
+
+### Invented description
+
+```text
+Invented example: text containing <strong>words</strong> and & symbols.
+```
+
+When displayed safely with `textContent`, the browser shows the angle brackets as characters. It does **not** make the word bold. This is desirable because the application should decide its own HTML structure.
+
+### Safe and unsafe comparison
+
+```javascript
+// Safe: the browser treats the value as text.
+paragraph.textContent = description;
+
+// Do not use this with external API data: it asks the browser to parse HTML.
+paragraph.innerHTML = description;
+```
+
+Do not test dangerous browser payloads. The harmless invented string above is enough to observe the difference. In Jinja templates, `{{ cve.description }}` is escaped by default. Do not add `|safe` to external content.
+
+### Practise
+Use browser DevTools Console on a local page:
+
+```javascript
+const example = document.createElement('p');
+example.textContent = 'Words with <strong>angle brackets</strong>.';
+document.body.append(example);
+```
+
+Observe the page. Remove the temporary element by refreshing. This is a local visual experiment, not a code change.
+
+## F6. Filter logic worked example
+
+### Overview
+A filter asks whether each record meets conditions. All selected conditions must match. Sorting changes order; it does not remove records. The dashboard filters in the browser after receiving normalised data.
+
+Use this invented list:
+
+|ID|Severity|Score|Known exploited|Published|
+|---|---:|---:|---|---|
+|CVE-2026-90001|CRITICAL|9.8|No|2026-03-01|
+|CVE-2026-90002|HIGH|8.1|Yes|2026-03-02|
+|CVE-2026-90003|MEDIUM|5.4|No|2026-03-03|
+|CVE-2026-90004|HIGH|not scored|No|2026-03-04|
+
+Try these predictions before using the UI:
+
+1. Severity HIGH → records `90002` and `90004`.
+2. Minimum score 8.0 → `90001` and `90002`; the not-scored record is not included.
+3. Known exploited only → `90002`.
+4. HIGH plus known exploited → only `90002`.
+5. HIGH plus minimum score 9.0 → no matches; the empty-state message should explain what happened.
+
+Open `/cves` and repeat with real cached fixture data. Use Clear filters between attempts. If a result surprises you, read the values shown on each card before assuming the code is wrong.
+
+## F7. Testing worked example: Arrange, Act, Assert
+
+### Overview
+A test says what the program should do in a particular situation. It is a safety net, not proof that every possible problem is absent. Use small, repeatable test data.
+
+```python
+def test_unscored_record_has_safe_fallback():
+    # Arrange: make a tiny upstream record without metrics.
+    upstream = {"cve": {"id": "CVE-2026-90004", "descriptions": [], "metrics": {}}}
+
+    # Act: convert it using the normaliser.
+    result = normalise_cve(upstream)
+
+    # Assert: check the two important promises.
+    assert result["score"] is None
+    assert result["description"] == "No English description supplied."
+```
+
+This example uses invented data. `def` starts a function. Comments explain test stages. `assert` fails the test when its condition is false. The existing test suite follows the same idea using fixtures.
+
+### Practise
+1. Read `tests/test_normalisers.py`.
+2. Identify its Arrange, Act and Assert statements with comments in your notebook or evidence record.
+3. Run one file: `pytest -q tests/test_normalisers.py`.
+4. Change one expected value in a temporary local copy, run the test, read the failure, then undo the change with `git restore tests/test_normalisers.py`.
+
+This is a controlled failure. It teaches that a red test contains useful information: expected value, actual value and line number.
+
+## F8. Git worked example: a small, recoverable change
+
+### Overview
+Commit after one understandable improvement. A commit message explains intent, not every keystroke. Git lets you inspect before recording and recover after a mistake.
+
+```bash
+git status
+git diff
+git add templates/index.html
+git commit -m "Add dashboard audience statement"
+git log --oneline -3
+```
+
+Imagine `git diff` shows only your one sentence. `git add templates/index.html` stages just that file; `git commit` makes a snapshot; `git log --oneline -3` shows recent snapshots. If `git status` unexpectedly lists `.env`, stop: it must not be staged.
+
+### Practise recovery
+Make a harmless visible text change, commit it, then decide it was not wanted:
+
+```bash
+git log --oneline -1
+git revert HEAD
+git log --oneline -2
+```
+
+`git revert` creates a new commit that reverses the previous commit. It is safer for shared history than changing old commits. Open the page to confirm the text returned to its earlier state.
+
+## F9. Deployment diagnosis worked example
+
+### Scenario
+You run `systemctl status vulnerability-dashboard --no-pager` and see `Active: failed`. The public Nginx page displays `502 Bad Gateway`.
+
+### Reasoning route
+1. A 502 means Nginx could not get a suitable response from the upstream application. It does not automatically mean Nginx is broken.
+2. On the server, run `curl -i http://127.0.0.1:8000/health`. If it cannot connect, investigate Gunicorn/systemd first.
+3. Run `journalctl -u vulnerability-dashboard -n 50 --no-pager`. Read the first relevant error line.
+4. Suppose it says the Python executable does not exist. Compare `ExecStart` in `/etc/systemd/system/vulnerability-dashboard.service` with `ls -l /srv/vulnerability-dashboard/.venv/bin/gunicorn`.
+5. Correct only the path, run `sudo systemctl daemon-reload`, then `sudo systemctl restart vulnerability-dashboard`.
+6. Re-test local health, then `sudo nginx -t`, then public page. Record the evidence.
+
+Do not restart every service repeatedly without reading logs. The order above identifies which layer failed and proves the repair.

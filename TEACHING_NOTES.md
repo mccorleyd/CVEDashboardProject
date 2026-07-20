@@ -1,7 +1,7 @@
-# Vulnerability Dashboard facilitator guide
+# Vulnerability Dashboard delivery guide
 
 ## Purpose and preparation
-This is a one-week, progressive project for Digital T Level learners with little technical background. The goal is independent explanation and evidence, not a perfect copied dashboard. Before the first lesson, prepare a supported Ubuntu LTS cloud instance per individual/team; a named student account with SSH public key; provider-console recovery/snapshot access; a private repository or local Git option; and a safe method for recording evidence. Confirm your institution's safeguarding, acceptable use and AI-disclosure policies.
+This is a one-week, progressive project for Digital T Level learners working through a new applied project. The goal is independent explanation and evidence, not a perfect copied dashboard. Before the first lesson, prepare a supported Ubuntu LTS cloud instance per individual/team; a named student account with SSH public key; provider-console recovery/snapshot access; a private repository or local Git option; and a safe method for recording evidence. Confirm your institution's safeguarding, acceptable use and AI-disclosure policies.
 
 Verify the current official OWASP Top 10 edition, NVD API 2.0 documentation, and CISA KEV JSON URL **before** delivery. The prior build environment could not reach them. Record the date and update/review `data/owasp_top_10.json` if required. Do not present the included edition as current until this check is complete.
 
@@ -10,7 +10,7 @@ Students should be able to: explain public/private IP, SSH keys, users and sudo;
 
 ## Suggested delivery sequence
 
-|Lesson|Facilitator demonstration|Minimum student evidence|Intervene when|
+|Lesson|Delivery demonstration|Minimum student evidence|Intervene when|
 |---|---|---|---|
 |1: problem|Score vs KEV/context scenario|audience, sketch, decision|student treats CVSS as risk|
 |2: Ubuntu|SSH host key, `pwd`/`cd`/`ls`, log command|navigation challenge|student uses destructive command blindly|
@@ -46,10 +46,10 @@ Use [ASSESSMENT_RUBRIC.md](ASSESSMENT_RUBRIC.md) with evidence, not impressions.
 ## Responsible AI
 Allow AI for explanations, small-code review, test ideas, fixture ideas and documentation only when students record it. Do not let AI receive secrets or replace evidence. Require the workbook AI log, a student explanation of every adopted line/command, and independent test/official-source verification. For security claims, model “AI output is a hypothesis, not authority.”
 
-## Challenge cards and facilitator-only answers
+## Challenge cards and delivery-only answers
 The student-facing cards are in Appendix A of the workbook. Do not show this section until an attempt is recorded.
 
-|Card|Facilitator-only answer direction|
+|Card|Delivery-only answer direction|
 |---|---|
 |No score|Use `score is None`; retain “Not scored”.|
 |429|Do not retry in a tight loop; use cache and friendly warning.|
