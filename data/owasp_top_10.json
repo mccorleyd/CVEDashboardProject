@@ -1,0 +1,131 @@
+{
+  "edition": "2021 (verified local teaching dataset; maintainer must check official OWASP project before delivery)",
+  "source_checked": "2026-07-20",
+  "note": "Category titles are summarised from OWASP. The short explanations, examples, impacts and prevention notes are student-friendly teaching text. Update this local file after an official new release; never scrape at runtime. Network access to official sources was unavailable in the build environment, so users must complete the documented release check before classroom use.",
+  "categories": [
+    {
+      "id": "A01:2021",
+      "name": "Broken Access Control",
+      "explanation": "People can do something they should not be allowed to do.",
+      "example": "A learner changes a record URL and sees another user\u2019s record.",
+      "impact": "Data exposure or unauthorised changes.",
+      "prevention": "Check permissions on every request and deny by default.",
+      "url": "https://owasp.org/Top10/A01_2021-Broken_Access_Control/",
+      "cwes": [
+        "CWE-200",
+        "CWE-284"
+      ]
+    },
+    {
+      "id": "A02:2021",
+      "name": "Cryptographic Failures",
+      "explanation": "Sensitive data is not protected properly.",
+      "example": "A site sends a password over an unencrypted connection.",
+      "impact": "Data theft or privacy harm.",
+      "prevention": "Use HTTPS and modern encryption; do not invent crypto.",
+      "url": "https://owasp.org/Top10/A02_2021-Cryptographic_Failures/",
+      "cwes": [
+        "CWE-311",
+        "CWE-326"
+      ]
+    },
+    {
+      "id": "A03:2021",
+      "name": "Injection",
+      "explanation": "Untrusted input changes the meaning of a command or query.",
+      "example": "A form value is treated as part of a database query.",
+      "impact": "Data loss, disclosure or control of a system.",
+      "prevention": "Validate input and use parameterised queries.",
+      "url": "https://owasp.org/Top10/A03_2021-Injection/",
+      "cwes": [
+        "CWE-79",
+        "CWE-89"
+      ]
+    },
+    {
+      "id": "A04:2021",
+      "name": "Insecure Design",
+      "explanation": "A safety control was missing from the design, not just the code.",
+      "example": "A reset journey has no limit on repeated attempts.",
+      "impact": "Fraud, abuse or unauthorised access.",
+      "prevention": "Threat-model features and design security controls early.",
+      "url": "https://owasp.org/Top10/A04_2021-Insecure_Design/",
+      "cwes": [
+        "CWE-209"
+      ]
+    },
+    {
+      "id": "A05:2021",
+      "name": "Security Misconfiguration",
+      "explanation": "A setting is unsafe or left at its default.",
+      "example": "A production server shows detailed error pages.",
+      "impact": "Information disclosure or compromise.",
+      "prevention": "Use reviewed, repeatable secure configuration.",
+      "url": "https://owasp.org/Top10/A05_2021-Security_Misconfiguration/",
+      "cwes": [
+        "CWE-16"
+      ]
+    },
+    {
+      "id": "A06:2021",
+      "name": "Vulnerable and Outdated Components",
+      "explanation": "A project uses software with known security problems.",
+      "example": "An old library has a published CVE.",
+      "impact": "Attackers may exploit a known weakness.",
+      "prevention": "Inventory dependencies and update safely.",
+      "url": "https://owasp.org/Top10/A06_2021-Vulnerable_and_Outdated_Components/",
+      "cwes": [
+        "CWE-1104"
+      ]
+    },
+    {
+      "id": "A07:2021",
+      "name": "Identification and Authentication Failures",
+      "explanation": "Identity checks or login protection are too weak.",
+      "example": "A service accepts easy-to-guess passwords without limits.",
+      "impact": "Account takeover.",
+      "prevention": "Use MFA, safe password storage and rate limits.",
+      "url": "https://owasp.org/Top10/A07_2021-Identification_and_Authentication_Failures/",
+      "cwes": [
+        "CWE-287",
+        "CWE-798"
+      ]
+    },
+    {
+      "id": "A08:2021",
+      "name": "Software and Data Integrity Failures",
+      "explanation": "Code or data is trusted without checking it.",
+      "example": "A build downloads a package without verifying its source.",
+      "impact": "Compromised software or data.",
+      "prevention": "Use signed, reviewed sources and protected pipelines.",
+      "url": "https://owasp.org/Top10/A08_2021-Software_and_Data_Integrity_Failures/",
+      "cwes": [
+        "CWE-345"
+      ]
+    },
+    {
+      "id": "A09:2021",
+      "name": "Security Logging and Monitoring Failures",
+      "explanation": "Important events are not recorded or noticed.",
+      "example": "Repeated failed logins are neither logged nor reviewed.",
+      "impact": "Incidents take longer to detect and investigate.",
+      "prevention": "Log useful events and practise alert response.",
+      "url": "https://owasp.org/Top10/A09_2021-Security_Logging_and_Monitoring_Failures/",
+      "cwes": [
+        "CWE-778"
+      ]
+    },
+    {
+      "id": "A10:2021",
+      "name": "Server-Side Request Forgery (SSRF)",
+      "explanation": "A server fetches a URL chosen by a user without safe controls.",
+      "example": "An image-import tool requests an internal service address.",
+      "impact": "Access to internal systems or data.",
+      "prevention": "Allow-list destinations and isolate network access.",
+      "url": "https://owasp.org/Top10/A10_2021-Server-Side_Request_Forgery_SSRF/",
+      "cwes": [
+        "CWE-918"
+      ]
+    }
+  ]
+}

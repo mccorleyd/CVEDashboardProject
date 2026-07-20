@@ -1,0 +1,9 @@
+# Security review and student worksheet
+## Threat model
+**Assets:** API key, server access, service files/cache, availability, accurate learning content. **Trust boundaries/data flow:** browser → Nginx → Gunicorn/Flask → file cache → NVD/CISA. Treat browser inputs and external API text as untrusted. **Threats:** stolen SSH key, excess firewall exposure, XSS, unsafe configuration, dependency weakness, API outage/rate limit, log/secret disclosure, permission errors.
+
+## Controls and residual risk
+Implemented: `.env` ignored; optional key is not logged/cached; parameters validate severity; Jinja escaping and JS `textContent`; timeouts/explicit exceptions/cache fallback; CSP, frame, referrer, MIME and permissions headers; localhost Gunicorn/non-root systemd; Nginx request limit; UFW/SSH-key guidance. Headers mean: `X-Content-Type-Options` prevents MIME guessing; `Referrer-Policy` limits referrer sharing; CSP limits allowed page resources; `Permissions-Policy` disables unused browser features; `frame-ancestors`/X-Frame-Options block framing. Residual: external data can be delayed/incomplete, app has no organisation asset inventory, file cache is single-server, HTTPS/domain setup is operational work.
+
+## OWASP mapping and checklist
+A01 access: non-root/permissions; A02 crypto: HTTPS after domain; A03 injection: no database core, validate future queries; A05 configuration: headers/Nginx review; A06 components: pinned dependencies/update review; A07 auth: SSH keys; A08 integrity: Git review; A09 logs: journal/Nginx logs; A10 SSRF: fixed API URLs, no user URL fetches. Student sign-off: [ ] no `.env` committed [ ] `git grep -n 'apiKey\|NVD_API_KEY'` reviewed [ ] keyboard/escaping test [ ] headers checked `curl -I` [ ] UFW only required ports [ ] service non-root [ ] updates planned [ ] stale-data warning seen [ ] rollback documented. Write: asset ___; threat ___; evidence ___; remaining risk ___; owner/date ___.
