@@ -1,1 +1,27 @@
-{% extends 'base.html' %}{% block content %}<h1>About data and terms</h1><dl><dt>OWASP</dt><dd>A not-for-profit foundation that publishes application-security guidance. This site uses a curated local teaching summary of the {{ owasp.edition }} edition; it does not scrape OWASP.</dd><dt>CVE</dt><dd>A public identifier for a reported vulnerability.</dd><dt>CWE</dt><dd>A classification of a weakness type, such as a category of coding mistake.</dd><dt>CVSS</dt><dd>A technical scoring system. It helps compare severity but does not measure the complete risk to your organisation.</dd><dt>NVD</dt><dd>NIST's database adds analysis to CVE records. Data fetched: {{ data.fetched_at or 'not available' }}.</dd><dt>CISA KEV</dt><dd>A catalogue of vulnerabilities known to be exploited. Missing from KEV does not prove a vulnerability is not exploited.</dd></dl><h2>Sources and maintenance</h2><p>NVD API 2.0 and CISA KEV JSON are retrieved dynamically when possible. OWASP data is local. When a new OWASP edition is released, a maintainer should read the official project, update <code>data/owasp_top_10.json</code>, record the source-check date, review each student explanation, test the page, and commit the change.</p>{% endblock %}
+{% extends 'base.html' %}
+{% block content %}
+  <h1>About data and terms</h1>
+
+  <dl>
+    <dt>OWASP</dt>
+    <dd>A not-for-profit foundation that publishes application-security guidance. This site uses a curated local teaching summary of the {{ owasp.edition }} edition; it does not scrape OWASP.</dd>
+
+    <dt>CVE</dt>
+    <dd>A public identifier for a reported vulnerability.</dd>
+
+    <dt>CWE</dt>
+    <dd>A classification of a weakness type, such as a category of coding mistake.</dd>
+
+    <dt>CVSS</dt>
+    <dd>A technical scoring system. It helps compare severity but does not measure the complete risk to your organisation.</dd>
+
+    <dt>NVD</dt>
+    <dd>NIST's database adds analysis to CVE records. Data fetched: {{ data.fetched_at or 'not available' }}.</dd>
+
+    <dt>CISA KEV</dt>
+    <dd>A catalogue of vulnerabilities known to be exploited. Missing from KEV does not prove a vulnerability is not exploited.</dd>
+  </dl>
+
+  <h2>Sources and maintenance</h2>
+  <p>NVD API 2.0 and CISA KEV JSON are retrieved dynamically when possible. OWASP data is local. When a new OWASP edition is released, a maintainer should read the official project, update <code>data/owasp_top_10.json</code>, record the source-check date, review each student explanation, test the page, and commit the change.</p>
+{% endblock %}

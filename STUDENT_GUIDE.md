@@ -1,10 +1,28 @@
 # Vulnerability Dashboard student workbook
 
 **Audience:** Digital T Level students building and deploying a security dashboard.
-**Project outcome:** a small, accessible security dashboard running on an Ubuntu server.
-**How long:** a guided week of lessons plus optional extensions. Plan the lessons across at least five study sessions; do not rush server-security steps.
+**Project outcome:** a small, accessible security dashboard running on an Ubuntu server, deployed the same way real small applications are deployed.
+**How long:** a guided project, best spread across several study sessions. Linux, Python, HTML/CSS/JavaScript and deployment each need real time — do not rush server-security or web-foundations lessons to save a day.
 
 > **Important safety rule:** never paste an API key, private SSH key, password or a server IP that is not public into chat, screenshots, Git, or an AI tool. Never run a command on the cloud server unless you can say what it will do and how to check it worked.
+
+## Contents
+0. [Start here: the map of the project](#0-start-here-the-map-of-the-project)
+1. [Understand the problem and plan your dashboard](#lesson-1--understand-the-problem-and-plan-your-dashboard)
+2. [Linux foundations: connect to and navigate your Ubuntu server](#lesson-2--linux-foundations-connect-to-and-navigate-your-ubuntu-server)
+3. [Secure the starting point](#lesson-3--secure-the-starting-point)
+4. [Python fundamentals, tools and Git](#lesson-4--python-fundamentals-tools-and-git)
+5. [HTML, CSS and JavaScript foundations](#lesson-5--html-css-and-javascript-foundations)
+6. [Build and understand the first Flask pages](#lesson-6--build-and-understand-the-first-flask-pages)
+7. [Model OWASP Top 10 content with JSON](#lesson-7--model-owasp-top-10-content-with-json)
+8. [Learn APIs with NVD fixtures and curl](#lesson-8--learn-apis-with-nvd-fixtures-and-curl)
+9. [Normalise, cache and enrich CVEs](#lesson-9--normalise-cache-and-enrich-cves)
+10. [Make the CVE explorer usable and safe](#lesson-10--make-the-cve-explorer-usable-and-safe)
+11. [Test, debug and security-review](#lesson-11--test-debug-and-security-review)
+12. [Deploy with Gunicorn, systemd and Nginx](#lesson-12--deploy-with-gunicorn-systemd-and-nginx)
+13. [Present, evaluate and extend](#lesson-13--present-evaluate-and-extend)
+
+Appendix A: [Challenge cards](#appendix-a--challenge-cards) · Appendix B: [Responsible AI assistance log](#appendix-b--responsible-ai-assistance-log)
 
 ---
 
@@ -40,6 +58,23 @@ HTML, CSS and JavaScript sent back to your browser
 |Flask, NVD API, local OWASP JSON, safe output, tests, non-root deployment|Project name/logo text, accessible colour palette, OWASP layout, CVE card/table layout, summary metrics, priority order, one extension|
 
 Keep a folder named `evidence` outside Git or a private classroom drive. Save command output, screenshots, test results, decision records and feedback there.
+
+### Your invented practice dataset
+
+Several lessons ahead reuse the same eight **invented** CVE records so you can compare your predictions against real behaviour without waiting for live data. These identifiers, products and flaws are made up for teaching. **Do not search for, report, scan for or attempt to exploit any of them — they do not correspond to real vulnerabilities.**
+
+|ID|Short description|Published|CVSS score|Severity|Known exploited (KEV)|Example CWE|Best-fit OWASP category|
+|---|---|---|---:|---|---|---|---|
+|CVE-2026-90001|Northstar Archive Server 4 — the backup endpoint never checks who is asking|2026-03-01|9.8|CRITICAL|No|CWE-284|A01 Broken Access Control|
+|CVE-2026-90002|BrightDesk Remote Support 7 — ships with an unchangeable default support password|2026-03-02|8.1|HIGH|Yes|CWE-798|A07 Identification and Authentication Failures|
+|CVE-2026-90003|Comet Timetable Widget — shows a search term back to the page without escaping it|2026-03-03|5.4|MEDIUM|No|CWE-79|A03 Injection|
+|CVE-2026-90004|Harbor Print Queue — print-job details are visible to any logged-in user, not just the owner; no CVSS score published yet|2026-03-04|Not scored|HIGH|No|CWE-200|A01 Broken Access Control|
+|CVE-2026-90005|Lantern Chat Widget — bundles a messaging library with a fixed, known flaw|2026-03-05|6.5|MEDIUM|No|CWE-1104|A06 Vulnerable and Outdated Components|
+|CVE-2026-90006|Anchor Payments Gateway — the administrator account has a weak, guessable password|2026-03-06|9.1|CRITICAL|Yes|CWE-287|A07 Identification and Authentication Failures|
+|CVE-2026-90007|Driftwood CMS — the login form never locks out repeated failed attempts|2026-03-07|4.3|MEDIUM|No|CWE-307|A07 Identification and Authentication Failures (see note)|
+|CVE-2026-90008|Pinehurst Backup Agent — fetches any URL a user supplies, with no allow-list|2026-03-08|7.2|HIGH|No|CWE-918|A10 Server-Side Request Forgery|
+
+**Note on CVE-2026-90007:** CWE-307 is not one of the two example CWEs listed for A07 in `data/owasp_top_10.json`. That is normal — the file's `cwes` field is described as "examples", not an exhaustive list. A real OWASP category covers many weaknesses; a short teaching file can only show a couple of them.
 
 ### Decision record template
 
@@ -77,58 +112,62 @@ By the end, you can explain CVE, CWE, CVSS, OWASP and CISA KEV in simple languag
 A **CVE** is an identifier such as `CVE-2026-0001` for a publicly reported vulnerability. A **CWE** names a class of weakness, for example a type of input-handling mistake. **CVSS** gives a standard technical score, normally 0–10. It is useful, but it does not know your organisation's systems, data or controls. **OWASP** publishes application-security education. **CISA KEV** is a US catalogue of vulnerabilities known to be exploited; absence from the catalogue is *not* proof that no exploitation exists.
 
 ## Worked example — deciding what to look at first
-Read the two **invented** records below. They are teaching data, not real vulnerabilities and not instructions to attack anything.
+Read the three **invented** records below, taken from your practice dataset above. They are teaching data, not real vulnerabilities and not instructions to attack anything.
 
-|Question|Record A: CVE-2026-90001|Record B: CVE-2026-90002|
-|---|---|---|
-|CVSS severity|Critical, 9.8|High, 8.1|
-|CISA KEV status|Not listed|Listed as known exploited|
-|Product|Northstar Archive Server 4|BrightDesk Remote Support 7|
-|Does the organisation use it?|No: asset list and software inventory show no installation|Yes: it is used on a public helpdesk server|
-|Internet exposure|Not applicable|Public login page is reachable|
-|Fix available?|Unknown|Vendor patch is available|
-|First action|Record the result and confirm the inventory is current|Assign urgent investigation: confirm version, restrict exposure if appropriate, test/apply the vendor patch under change control|
+|Question|CVE-2026-90001|CVE-2026-90002|CVE-2026-90006|
+|---|---|---|---|
+|CVSS severity|Critical, 9.8|High, 8.1|Critical, 9.1|
+|CISA KEV status|Not listed|Listed as known exploited|Listed as known exploited|
+|Product|Northstar Archive Server 4|BrightDesk Remote Support 7|Anchor Payments Gateway|
+|Does the organisation use it?|No: asset list and software inventory show no installation|Yes: it is used on a public helpdesk server|Yes: it runs the public checkout|
+|Internet exposure|Not applicable|Public login page is reachable|Public checkout page is reachable|
+|Fix available?|Unknown|Vendor patch is available|No patch yet|
+|First action|Record the result and confirm the inventory is current|Assign urgent investigation: confirm version, restrict exposure if appropriate, test/apply the vendor patch under change control|Assign urgent investigation: since no patch exists yet, look at compensating controls (force a password reset, restrict admin access by IP) while a fix is awaited|
 
-A quick ranking by score alone would put Record A first because 9.8 is larger than 8.1. A security team instead uses several signals. Record B has a used product, public exposure, a known-exploited signal and a patch. It may therefore be investigated first. This is not an automatic rule: the team still checks its own systems, service importance, compensating controls and change window.
+A quick ranking by score alone would put 90001 first because 9.8 is larger than 8.1 or 9.1. A security team instead uses several signals. 90002 and 90006 both have a used product, public exposure and a known-exploited signal — but they need *different* first actions, because one has a vendor patch and the other does not. This is not an automatic rule: the team still checks its own systems, service importance, compensating controls and change window.
 
 ### Try the reasoning yourself
 For each statement, decide whether it is **true**, **false**, or **not enough information**:
 
-1. “Record A is harmless because the organisation does not use it.”
-2. “Record B is definitely being exploited on this organisation's server.”
-3. “A CVSS score tells us whether a patch will be easy to apply.”
-4. “CISA KEV is a useful prioritisation signal.”
+1. "CVE-2026-90001 is harmless because the organisation does not use it."
+2. "CVE-2026-90002 is definitely being exploited on this organisation's server."
+3. "A CVSS score tells us whether a patch will be easy to apply."
+4. "CISA KEV is a useful prioritisation signal."
+5. "Because CVE-2026-90006 has no available patch yet, it should be ignored until one exists."
 
-**Answers:** 1 is *not enough information*: the inventory might be incomplete, so record the check. 2 is *false*: KEV means exploitation is known in the wider world, not necessarily on this server. 3 is *false*: CVSS is not a change-management measure. 4 is *true*, but it must be combined with local context.
+**Answers:** 1 is *not enough information*: the inventory might be incomplete, so record the check. 2 is *false*: KEV means exploitation is known in the wider world, not necessarily on this server. 3 is *false*: CVSS is not a change-management measure. 4 is *true*, but it must be combined with local context. 5 is *false*: a missing patch means the team investigates compensating controls sooner, not later.
 
 ## Tasks
-1. Write an audience statement: “This dashboard helps ___ decide ___ because ___.”
-2. Draw the home page on paper. Include a title, four number cards, severity bars, a “look first” explanation, and a recent-CVE list.
-3. Pick a name, font style and two main colours. Use an online contrast checker or browser DevTools to check text contrast. Do not use colour alone to mean “critical”.
+1. Write an audience statement: "This dashboard helps ___ decide ___ because ___."
+2. Draw the home page on paper. Include a title, four number cards, severity bars, a "look first" explanation, and a recent-CVE list.
+3. Pick a name, font style and two main colours. Use an online contrast checker or browser DevTools to check text contrast. Do not use colour alone to mean "critical". (You will apply this properly in Lesson 5.)
 4. Complete a decision record for your OWASP layout: cards, accordion, table/detail panel, or vertical timeline. The reference app uses cards; changing it is an extension after the core works.
+5. Using the practice dataset table in section 0, decide a priority order for all eight records and write one sentence justifying your top choice. There is no single correct order — the mark is in the reasoning.
 
 ## Checkpoint and reflection
-Show the sketch and decision record. Explain: “Why might a high CVSS score not be first priority?”
+Show the sketch and decision record. Explain: "Why might a high CVSS score not be first priority?"
 **Common mistake:** saying KEV means every organisation is affected. It means there is exploitation evidence, not that your systems are vulnerable.
 
 **Stretch:** write a 50-word explanation of Vulnerability Dashboard for a non-specialist school governor.
 
 ---
 
-# Lesson 2 — Meet your Ubuntu cloud server
-**Effort:** medium. **Suggested Git checkpoint:** `record server orientation`.
+# Lesson 2 — Linux foundations: connect to and navigate your Ubuntu server
+**Effort:** substantial. **Suggested Git checkpoint:** `record server orientation`.
 
 ## Why this matters
-A cloud instance is a remote virtual computer rented from a provider. You control it through a terminal. A **public IP address** can be reached from the internet; a **private IP address** is for internal networks. Treat the server like a real production system: use named users, record changes and avoid unnecessary exposure.
+A cloud instance is a remote virtual computer rented from a provider. You control it through a terminal. A **public IP address** can be reached from the internet; a **private IP address** is for internal networks. Treat the server like a real production system: use named users, record changes and avoid unnecessary exposure. Everything in this lesson is a skill you will reuse every remaining lesson, so it is worth doing slowly.
 
 ## New words
 * **SSH (Secure Shell):** encrypted remote terminal connection.
 * **Key pair:** a private key kept secret on your computer and a public key installed on the server.
 * **Host key:** the server's identity fingerprint. Check it with the cloud-provider dashboard or trusted course record the first time.
 * **user:** an account with its own files and permissions.
-* **sudo:** “run this command with administrator privileges”. It is powerful, not a shortcut.
+* **sudo:** "run this command with administrator privileges". It is powerful, not a shortcut.
+* **shell:** the program that reads the commands you type, one line at a time, and runs them.
+* **path:** the route to a file. An **absolute path** starts at `/`, the top of the filesystem, e.g. `/home/ubuntu/notes.txt`. A **relative path** starts from where you currently are, e.g. `notes.txt`. `~` is a shortcut for your home folder.
 
-## First connection
+## 2.1 First connection
 Your cloud-provider dashboard or course setup record gives you a hostname or public IP, username and private-key file. In your own terminal, move to the folder containing the key. On Windows PowerShell, `cd` works too; on macOS/Linux use Terminal.
 
 ```bash
@@ -136,11 +175,88 @@ cd ~/Downloads
 ssh -i vulnerability-dashboard-class.pem ubuntu@203.0.113.10
 ```
 
-**What each part means:** `cd` changes folder; `-i` selects the identity/private-key file; `ubuntu@...` means “log in as ubuntu on this server”. The address above is documentation-only; use the address in your own setup record.
+**What each part means:** `cd` changes folder; `-i` selects the identity/private-key file; `ubuntu@...` means "log in as ubuntu on this server". The address above is documentation-only; use the address in your own setup record.
 
 If asked whether to trust an unknown host key, **stop and compare the fingerprint with the cloud-provider dashboard or trusted setup record**. Do not accept a different fingerprint without investigation.
 
-### Commands you will practise
+## 2.2 Lab: paths, folders and files
+A computer stores files inside folders (also called directories). Try this on the server, one line at a time:
+
+```bash
+pwd
+mkdir -p ~/dashboard-lab/week1
+cd ~/dashboard-lab/week1
+pwd
+ls -la
+touch first-note.txt
+ls -la
+```
+
+`touch` creates an empty file if it does not exist, or updates its timestamp if it does. `mkdir -p` makes all missing folders in a path and does not complain if they already exist. In the output of `ls -la`, the first character `d` means directory and `-` means ordinary file; `.` means the current folder and `..` means the parent.
+
+### Guided challenge
+1. Create `~/dashboard-lab/week1/assets`, enter it with `cd`, and prove your location with `pwd`.
+2. Create `colours.txt` with `touch`, then go back one folder with `cd ..`.
+3. List the contents of `assets` without entering it: `ls -la assets`.
+4. Copy `first-note.txt` to `copy.txt` with `cp`, then rename it to `moved.txt` with `mv`.
+5. Return home with `cd` on its own. Why does this work from any starting folder?
+6. Clean up only your practice folder: `rm -r ~/dashboard-lab/week1/assets`. `rm -r` permanently deletes a folder and its contents. Run `pwd` first and type the full path; never use it with a path you do not understand.
+
+**Checkpoint:** you can explain absolute, relative and home-folder paths, and what `cp` does differently from `mv`.
+**Try a mistake safely:** type `cd missing-folder`. Read the error, then run `ls` to see why it failed. Do not create a random folder just to silence an error.
+
+## 2.3 Lab: read and edit text safely
+Configuration and code are text files. A command-line editor does not protect you from mistakes, so make one change, save, inspect, then continue. `nano` is a good choice because its shortcuts appear at the bottom of the screen.
+
+```bash
+cd ~/dashboard-lab/week1
+nano first-note.txt
+```
+
+Type three short lines. Save with `Ctrl+O`, press Enter to confirm the name, then exit with `Ctrl+X`. Now run:
+
+```bash
+cat first-note.txt
+less first-note.txt
+```
+
+`cat` prints a short file at once. `less` is better for long files: press Space to move down, `b` up, `/word` to search, and `q` to quit. Never use `cat` on a secret file in a shared screen recording.
+
+### Guided challenge
+1. Add a fourth line with `nano`, then search it: `grep -n 'word-you-used' first-note.txt`. `-n` adds line numbers.
+2. Print only the final two lines: `tail -n 2 first-note.txt`.
+3. Compare file listings with `ls -l` before and after editing.
+
+**Checkpoint:** explain the difference between copying and moving a file.
+**Common error:** saving a file in the wrong folder. Use `pwd` before `nano`, or use an absolute path.
+
+## 2.4 Lab: permissions in plain English
+Linux permissions decide who may read (`r`), write (`w`) or enter/execute (`x`) a file. `ls -l` shows three groups: owner, group, everyone else. A private key should not be readable by everyone. Do not solve every problem with `sudo` or `chmod 777`; that hides the question "who should really have access?"
+
+```bash
+cd ~/dashboard-lab/week1
+ls -l first-note.txt
+chmod 600 first-note.txt
+ls -l first-note.txt
+```
+
+`600` means owner can read/write; group and others have no permissions. This is appropriate for a private text note, not necessarily a shared web asset. Restore a normal readable example with `chmod 644 first-note.txt` (owner read/write; others read).
+
+**Checkpoint:** explain why a service account needs read permission to application files but should not own system configuration. You will use this idea again in Lesson 3 and Lesson 12.
+**Safety rule:** only change permissions on files you own in this lab. Record the old mode before changing a production file.
+
+## 2.5 Lab: reading command help
+Good developers do not memorise every option. They find help, read the relevant part, and test a small example. On Ubuntu, `man` opens a manual page, `--help` gives short help, and `apropos` searches manual titles.
+
+```bash
+mkdir --help | less
+man ls
+apropos 'copy files'
+```
+
+Quit a manual with `q`. Look up `cp` and identify what recursive copying means before you ever use `cp -r`. Do not run options merely because an example contains them.
+
+## 2.6 Full command reference
 
 |Command|Purpose|Example|What to look for|
 |---|---|---|---|
@@ -148,7 +264,7 @@ If asked whether to trust an unknown host key, **stop and compare the fingerprin
 |`ls -la`|list files, including hidden ones|`ls -la`|`.` means current; `..` parent|
 |`cd NAME`|enter a folder|`cd projects`|Prompt/folder changes|
 |`cd ..`|go up one level|`cd ..`|Useful after a mistake|
-|`mkdir NAME`|make a folder|`mkdir practice`|New folder appears in `ls`|
+|`mkdir -p NAME`|make a folder (and parents)|`mkdir -p practice/notes`|New folders appear in `ls`|
 |`cp A B`|copy file|`cp notes.txt notes-copy.txt`|Both files exist|
 |`mv A B`|move/rename|`mv notes-copy.txt old-notes.txt`|Old name disappears|
 |`cat FILE`|print small file|`cat notes.txt`|Use only for short text|
@@ -156,26 +272,19 @@ If asked whether to trust an unknown host key, **stop and compare the fingerprin
 |`nano FILE`|simple terminal editor|`nano notes.txt`|`Ctrl+O`, Enter saves; `Ctrl+X` exits|
 |`grep TEXT FILE`|find text|`grep -n 'Port' /etc/ssh/sshd_config`|`-n` includes line numbers|
 |`tail -n 30 FILE`|last lines of a file|`tail -n 30 /var/log/...`|Useful for new log entries|
+|`chmod MODE FILE`|change permissions|`chmod 600 key.pem`|`ls -l` shows the new mode|
 |`whoami` / `id`|current user/permissions|`id`|Shows groups|
-|`ps aux`|running processes|`ps aux | grep gunicorn`|A pipe sends output to grep|
+|`ps aux`|running processes|`ps aux \| grep gunicorn`|A pipe sends output to grep|
 |`ss -tulpn`|list listening network ports|`sudo ss -tulpn`|Check what is reachable|
 |`systemctl`|manage services|`systemctl status nginx`|Does not edit files|
 |`journalctl`|read service logs|`journalctl -u nginx -n 30`|`-u` selects a service|
 |`curl`|make an HTTP request|`curl -I http://127.0.0.1`|`-I` asks for headers|
-
-## Guided navigation challenge
-1. Run `pwd`. Copy the output into evidence.
-2. Run `mkdir -p ~/vulnerability-dashboard-practice/notes`. `-p` creates needed parent folders too.
-3. Run `cd ~/vulnerability-dashboard-practice/notes`, then `pwd`. Explain why this works from any starting folder: `~` means your home folder.
-4. Run `nano commands.txt`, type `I can navigate Linux.`, save and exit.
-5. Run `cat commands.txt`; then copy and rename it: `cp commands.txt copy.txt` and `mv copy.txt moved.txt`.
-6. Run `ls -la`, then `cd ..`, then `ls -la notes`.
-7. Clean up only your practice folder: `rm -r ~/vulnerability-dashboard-practice`. `rm -r` permanently deletes a folder and its contents. Run `pwd` first and type the full path; never use it with a path you do not understand.
+|`man` / `--help`|read documentation|`man cp`|`q` to quit a manual|
 
 ## Checkpoint
 Run `whoami`, `id`, `ss -tulpn`, and `systemctl status ssh --no-pager`. A pager lets long output scroll; `--no-pager` prints it once. Explain which command tells you your current folder and which command tells you your identity.
 
-**Likely errors:** `No such file or directory` usually means the folder/file spelling is wrong; use `pwd` and `ls`. `Permission denied` means your user cannot perform that action; do not automatically add `sudo`—ask why permission is needed.
+**Likely errors:** `No such file or directory` usually means the folder/file spelling is wrong; use `pwd` and `ls`. `Permission denied` means your user cannot perform that action; do not automatically add `sudo` — ask why permission is needed.
 
 ---
 
@@ -183,7 +292,7 @@ Run `whoami`, `id`, `ss -tulpn`, and `systemctl status ssh --no-pager`. A pager 
 **Effort:** medium. **Suggested Git checkpoint:** `document basic server hardening`.
 
 ## Why this matters
-A public server receives internet traffic. Least privilege means each user and service has only the access it needs. Do hardening one small reversible step at a time.
+A public server receives internet traffic. Least privilege means each user and service has only the access it needs — the same idea you practised with `chmod` in Lesson 2.4, now applied to whole accounts and network ports. Do hardening one small reversible step at a time.
 
 ## Tasks with verify and undo steps
 1. **Update the operating system.**
@@ -203,7 +312,7 @@ A public server receives internet traffic. Least privilege means each user and s
    sudo less /etc/ssh/sshd_config
    sudo sshd -t
    ```
-   Look for `PasswordAuthentication` and `PermitRootLogin`. `sshd -t` checks syntax without applying changes. **Do not close the current session.** After checking the configuration and opening a second SSH terminal, open a second SSH terminal and confirm key login works before reloading SSH: `sudo systemctl reload ssh`.
+   Look for `PasswordAuthentication` and `PermitRootLogin`. `sshd -t` checks syntax without applying changes. **Do not close the current session.** After checking the configuration, open a second SSH terminal and confirm key login works before reloading SSH: `sudo systemctl reload ssh`.
 4. **Set the firewall carefully.**
    ```bash
    sudo ufw allow OpenSSH
@@ -220,13 +329,10 @@ Why is running Gunicorn as `root` a poor choice? What is the safe rollback if a 
 
 ---
 
-# Lesson 4 — Install developer tools and start Git
-**Effort:** medium. **Suggested Git checkpoint:** `initial project structure`.
+# Lesson 4 — Python fundamentals, tools and Git
+**Effort:** substantial. **Suggested Git checkpoint:** `initial project structure`.
 
-## Concept overview
-**Git** records snapshots (commits) of work. It is not a backup for passwords: `.gitignore` tells Git which local files, such as `.env`, must not be added. A **repository** is the folder Git tracks. A **virtual environment** (`venv`) is an isolated folder containing Python packages for one project.
-
-## Install and check tools
+## 4.1 Install and check developer tools
 ```bash
 sudo apt install -y git python3 python3-venv python3-pip curl
 python3 --version
@@ -235,7 +341,94 @@ curl --version
 ```
 `-y` confirms the package manager question automatically. Check that each version command prints a version. If it does not, copy the exact error into evidence.
 
-## Get the project and create the environment
+## 4.2 Python fundamentals, using your practice dataset
+You will read and adapt real Python throughout this project. Before that, build the vocabulary using a scratch file. Create `~/dashboard-lab/python_basics.py` with `nano` and work through it a section at a time, running `python3 python_basics.py` after each addition.
+
+### Variables, types and f-strings
+```python
+identifier = "CVE-2026-90001"      # a string
+score = 9.8                        # a float (a number with a decimal point)
+is_known_exploited = False         # a boolean: True or False
+weakness = None                    # Python's "no value yet"
+
+print(f"{identifier} scored {score}")
+```
+`f"..."` is an **f-string**: anything inside `{}` is evaluated and inserted. `None` is not the same as `0` or `False` — it means "nothing has been supplied", which is exactly how the dashboard represents a missing CVSS score.
+
+### Lists and dictionaries
+A **list** is an ordered collection written with `[]`. A **dictionary** (`dict`) maps named keys to values, written with `{}` — the same shape as a JSON object you will meet in Lesson 7.
+
+```python
+cves = [
+    {"id": "CVE-2026-90001", "severity": "CRITICAL", "score": 9.8, "known_exploited": False},
+    {"id": "CVE-2026-90002", "severity": "HIGH", "score": 8.1, "known_exploited": True},
+    {"id": "CVE-2026-90004", "severity": "HIGH", "score": None, "known_exploited": False},
+]
+
+print(cves[0])            # the first item: position 0, not 1
+print(cves[0]["severity"]) # "CRITICAL"
+print(cves[0].get("cvss_version"))  # None: .get() never crashes on a missing key
+```
+Square brackets `cves[0]` select a list position. `dictionary["key"]` raises an error (`KeyError`) if the key is absent; `dictionary.get("key")` returns `None` instead. External data is often incomplete, so the real application almost always uses `.get`.
+
+### Loops and conditionals
+```python
+for cve in cves:
+    if cve["score"] is None:
+        print(f"{cve['id']}: not scored yet")
+    elif cve["severity"] == "CRITICAL":
+        print(f"{cve['id']}: investigate soon")
+    else:
+        print(f"{cve['id']}: {cve['severity']}")
+```
+`for item in list:` runs the indented block once per item. `if` / `elif` / `else` chooses one branch. Indentation is not decoration in Python — it defines which lines belong to the loop or the branch.
+
+### Functions
+```python
+def count_by_severity(cves, target_severity):
+    total = 0
+    for cve in cves:
+        if cve["severity"] == target_severity:
+            total += 1
+    return total
+
+print(count_by_severity(cves, "HIGH"))  # 2
+```
+`def` starts a function definition; the values in brackets are **parameters**; `return` sends a value back to the caller. Predict the answer before you run it, then check.
+
+### From a loop to a comprehension
+The loop above can be written as a **list comprehension** — a compact way to build a list from another list:
+
+```python
+high_severity_ids = [c["id"] for c in cves if c["severity"] == "HIGH"]
+print(high_severity_ids)  # ['CVE-2026-90002', 'CVE-2026-90004']
+
+how_many_high = sum(1 for c in cves if c["severity"] == "HIGH")
+print(how_many_high)  # 2
+```
+`[expression for item in list if condition]` reads as "build a new list from `expression`, for each `item` in `list`, but only where `condition` is true". `sum(1 for ... if ...)` is the same idea used to count instead of collect. This pattern is exactly what you will find inside `services/normalisers.py` in Lesson 9 — it will already look familiar.
+
+One more building block you will meet there: `next(generator, default)` takes the **first** value a generator produces, or a fallback if there are none at all:
+
+```python
+first_high = next((c["id"] for c in cves if c["severity"] == "HIGH"), "none found")
+print(first_high)  # 'CVE-2026-90002'
+```
+
+### Guided task
+1. Using the full eight-record practice dataset from section 0, write it out as a Python list of dictionaries in your scratch file (only the `id`, `severity`, `score` and `known_exploited` fields are needed).
+2. Write a function `count_exploited(cves)` using a plain loop, run it, and check the answer against your own count of the table (should be 2).
+3. Rewrite the same count as a comprehension/`sum(...)` expression and confirm you get the same answer.
+4. Write one line using `next(...)` that finds the `id` of the first CRITICAL record, with a sensible fallback string if none existed.
+
+**Checkpoint:** you can explain, in your own words, what a list comprehension does and why `.get()` is safer than `["key"]` for data that might be incomplete.
+
+## 4.3 Concepts: Git and virtual environments
+**Git** records snapshots (commits) of work. It is not a backup for passwords: `.gitignore` tells Git which local files, such as `.env`, must not be added. A **repository** is the folder Git tracks. A **virtual environment** (`venv`) is an isolated folder containing Python packages for one project, so installing a package here never affects another project or the operating system.
+
+## 4.4 Get the project and create the environment
+This repository already contains a complete reference dashboard: a working Flask app, templates, styling, tests and deployment files. Over the coming lessons you will run it, read it, test it, deploy it — and in Lessons 6 and 7 you will author a brand-new route and a brand-new content file yourself, so you practise building, not only editing.
+
 ```bash
 cd /srv
 sudo git clone YOUR_REPOSITORY_URL vulnerability-dashboard
@@ -248,7 +441,7 @@ pip install -r requirements-dev.txt
 ```
 `source` runs the activation script in the current shell. Your prompt normally starts with `(.venv)`. It does not modify Python globally. Leave it later with `deactivate`. If `pip` installs but `python` cannot import Flask, check whether the prompt has `(.venv)`.
 
-## Git guided tasks
+## 4.5 Git guided tasks
 ```bash
 git status
 git add README.md
@@ -261,87 +454,482 @@ git add README.md && git commit -m "Clarify local setup"
 git switch work
 git merge improve-readme
 ```
-`git status` answers “what changed?”; `git add` chooses changes for the next snapshot; `git commit -m` records them with an explanation; `git diff` shows unstaged changes. If your branch name is not `work`, run `git branch --show-current` and substitute it.
+`git status` answers "what changed?"; `git add` chooses changes for the next snapshot; `git commit -m` records them with an explanation; `git diff` shows unstaged changes. If your branch name is not `work`, run `git branch --show-current` and substitute it.
+
+### Worked example: a small, recoverable change
+Imagine `git diff` shows only one added sentence. Committing and reviewing it looks like this:
+```bash
+git status
+git diff
+git add templates/index.html
+git commit -m "Add dashboard audience statement"
+git log --oneline -3
+```
+If `git status` unexpectedly lists `.env`, stop: it must not be staged.
+
+Now practise recovering from an unwanted commit:
+```bash
+git log --oneline -1
+git revert HEAD
+git log --oneline -2
+```
+`git revert` creates a **new** commit that reverses the previous one — safer for shared history than editing old commits. Refresh the page to confirm the text returned to its earlier state.
 
 ### Controlled merge-conflict exercise
-In a pair, both edit the same single sentence differently in separate branches. Merge one branch, then merge the other. Git places conflict markers. Read both versions, keep the intended text, remove the markers, `git add`, and commit. To reverse a bad *committed* change without rewriting history: `git revert COMMIT_ID`. Release the final tested version: `git tag -a v1.0.0 -m "First classroom release"`.
+In a pair, both edit the same single sentence differently in separate branches. Merge one branch, then merge the other. Git places conflict markers. Read both versions, keep the intended text, remove the markers, `git add`, and commit. Tag this practice milestone with a name that will not be confused with your real release later: `git tag -a v0.1-practice-merge -m "First classroom merge-conflict practice"`. The real release tag, `v1.0.0`, is reserved for Lesson 12 when the dashboard is actually deployed.
 
 **Never:** add `.env`, `*.pem`, downloaded keys or copied server secrets. Check `git status` before every `git add .`.
 
 ---
 
-# Lesson 5 — Build and understand the first Flask pages
-**Effort:** medium. **Suggested Git checkpoint:** `add first Flask pages`.
+# Lesson 5 — HTML, CSS and JavaScript foundations
+**Effort:** substantial. **Suggested Git checkpoint:** `build a standalone practice page`.
+
+## Why this matters
+Before you edit the dashboard's real templates, build a small page entirely by hand. This is the only way to get real practice writing markup, styling it and adding behaviour, rather than only ever reading someone else's finished file. Work in `~/dashboard-lab/webpage/`, separate from the Flask project.
+
+## 5.1 HTML: structure first
+HTML describes the **structure** and **meaning** of a page, not its appearance. Create `~/dashboard-lab/webpage/practice.html`:
+
+```html
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Practice CVE page</title>
+  <link rel="stylesheet" href="practice.css">
+</head>
+<body>
+  <header>
+    <nav aria-label="Practice navigation">
+      <a href="#top">Practice page</a>
+    </nav>
+  </header>
+
+  <main id="top">
+    <h1>Practice CVE list</h1>
+    <p>This page is a local practice exercise, not part of the real dashboard.</p>
+
+    <section aria-label="Search">
+      <label for="search">Search records</label>
+      <input id="search" type="search" aria-describedby="search-help">
+      <p id="search-help">Type part of an identifier or description.</p>
+    </section>
+
+    <section aria-label="Practice CVE cards">
+      <article class="card">
+        <h2><a href="#">CVE-2026-90001</a></h2>
+        <p>Northstar Archive Server 4 — the backup endpoint never checks who is asking.</p>
+        <p><span class="badge severity-critical">CRITICAL</span> Score: 9.8</p>
+      </article>
+      <article class="card">
+        <h2><a href="#">CVE-2026-90002</a></h2>
+        <p>BrightDesk Remote Support 7 — ships with an unchangeable default support password.</p>
+        <p><span class="badge severity-high">HIGH</span> Score: 8.1 <span class="badge kev">Known Exploited</span></p>
+      </article>
+    </section>
+  </main>
+
+  <footer>
+    <p>Practice page for learning HTML, CSS and JavaScript.</p>
+  </footer>
+
+  <script src="practice.js" defer></script>
+</body>
+</html>
+```
+
+Read each new element as you type it: `<header>`, `<nav>`, `<main>`, `<section>` and `<footer>` are **semantic** elements — they describe what a part of the page *is*, which helps screen readers and search engines, not just browsers. `<label for="search">` is connected to `<input id="search">` by matching `for`/`id` values: click the label text and the input receives focus. `aria-describedby` links the input to an explanatory paragraph. Open the file directly in a browser (`file:///...` or a simple local server) to see it rendered before any CSS exists.
+
+### Guided task
+1. Add a third practice card using **CVE-2026-90006** from your dataset (Anchor Payments Gateway, CRITICAL, 9.1, Known Exploited).
+2. Add one more semantic landmark: wrap the two sections above with meaningful `aria-label` text if you have not already, and check with DevTools that each heading level (`h1`, then `h2`) is used in order, not skipped.
+3. View the page with images/CSS disabled (or before `practice.css` exists) and confirm the content still makes sense read top-to-bottom. This is what a screen reader broadly experiences.
+
+## 5.2 CSS: presentation with a system
+CSS controls appearance. A **selector** chooses elements; a **declaration** is a property/value pair. Create `~/dashboard-lab/webpage/practice.css`:
+
+```css
+:root {
+  --ink: #172033;
+  --bg: #f5f8fb;
+  --card: #ffffff;
+  --accent: #064b78;
+  --focus: #e05a00;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font: 16px/1.5 system-ui, sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+}
+
+header, footer {
+  background: #102a43;
+  color: #fff;
+  padding: 1rem;
+}
+
+main {
+  max-width: 900px;
+  margin: auto;
+  padding: 1rem;
+}
+
+a:focus, input:focus {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.card {
+  background: var(--card);
+  padding: 1rem;
+  border-radius: .5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .12);
+  margin-bottom: 1rem;
+}
+
+.badge {
+  display: inline-block;
+  padding: .15rem .5rem;
+  border-radius: .3rem;
+  font-weight: bold;
+  font-size: .85rem;
+}
+
+.severity-critical { background: #7d1520; color: #fff; }
+.severity-high { background: #a94600; color: #fff; }
+.kev { background: #4d146b; color: #fff; }
+
+/* Cards sit side by side on wide screens, stacked on narrow ones. */
+main section[aria-label="Practice CVE cards"] {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+@media (max-width: 500px) {
+  main { padding: .5rem; }
+}
+```
+
+`--ink`, `--bg` and friends are **custom properties**: named values reused with `var(--name)`. Change one line and every rule using it updates together — this is exactly how the real dashboard's colour system works (you will meet it again in `static/css/styles.css`). `box-sizing: border-box` makes padding count *inside* an element's declared width, avoiding a common sizing surprise. The `grid-template-columns: repeat(auto-fit, minmax(240px, 1fr))` line means "as many 240px-or-wider equal columns as fit" — resize your browser and watch the cards reflow with no media query needed for that part. The `@media` rule only applies extra styling below 500px wide.
+
+### Guided task: colour and type with a job
+Reuse the reasoning from Lesson 1's design task, now with tools:
+1. Pick a background, text and accent colour. Check the accent-on-background and text-on-background pairs with a contrast checker (browser DevTools "Accessibility" panel, or an online WCAG contrast checker) and aim for at least 4.5:1 for normal text.
+2. Choose one readable body font. The fastest, most reliable choice is your operating system's own font stack (`system-ui, sans-serif`, as used above) — it needs no download and cannot fail to load. If you want a webfont, pick one and check its licence (for example on Google Fonts), and load only the weights you actually use.
+3. In DevTools, open the Elements/Styles panel, click `.card`, and change `padding` from `1rem` to `2rem` live. Observe the effect, then refresh to discard the experiment — this is how you should explore CSS before editing a real file.
+4. Confirm severity colour is never the *only* signal: each badge above also has text (`CRITICAL`, `HIGH`), not just a colour.
+
+## 5.3 JavaScript: responding to the user
+JavaScript runs in the browser and can read/change the page after it has loaded. Create `~/dashboard-lab/webpage/practice.js`:
+
+```javascript
+// Toggle a "more detail" panel and keep aria-expanded in sync,
+// the same pattern the real dashboard uses for its mobile menu.
+const firstCard = document.querySelector('.card');
+const toggle = document.createElement('button');
+toggle.textContent = 'Show more detail';
+toggle.setAttribute('aria-expanded', 'false');
+firstCard.append(toggle);
+
+const detail = document.createElement('p');
+detail.textContent = 'Weakness: CWE-284, Broken Access Control.';
+detail.hidden = true;
+firstCard.append(detail);
+
+toggle.addEventListener('click', () => {
+  const isOpen = !detail.hidden;
+  detail.hidden = isOpen;
+  toggle.setAttribute('aria-expanded', String(!isOpen));
+  toggle.textContent = isOpen ? 'Show more detail' : 'Hide detail';
+});
+```
+
+`const` creates a named value that cannot be reassigned. `document.querySelector('.card')` finds the first element matching that CSS selector — the same selector syntax you just used in CSS. `document.createElement` builds a new element in memory; `.append` adds it to the page. `addEventListener('click', () => { ... })` runs the arrow function every time the button is clicked. `aria-expanded` tells assistive technology whether the extra content is currently visible.
+
+### Why `textContent`, never `innerHTML`, for untrusted data
+An API description is data from *outside* your application. It may contain characters with special meaning in HTML. Compare:
+
+```javascript
+// Safe: the browser treats the value as plain text, whatever it contains.
+detail.textContent = 'Words with <strong>angle brackets</strong> and & symbols.';
+
+// Do not do this with external data: it asks the browser to parse HTML,
+// so a description could inject real markup or scripts.
+detail.innerHTML = 'Words with <strong>angle brackets</strong> and & symbols.';
+```
+
+Paste both lines separately into your `practice.js`, reload, and compare what appears on the page: the first shows the literal angle brackets as text; the second renders `<strong>` as actual bold markup. This is why `dashboard.js` in the real project always builds elements and sets `.textContent`. Jinja templates behave the same way by default: `{{ value }}` is escaped automatically, and you should never add `|safe` to text that came from an external API.
+
+### Guided task
+1. Add a second toggle button to your second practice card (BrightDesk), reusing the same pattern.
+2. Open DevTools Console and check for errors after each change.
+3. Test both buttons using only the keyboard: `Tab` to reach the button, `Enter` or `Space` to activate it. If focus is invisible, revisit your CSS `:focus` rule from 5.2.
+
+## Checkpoint
+Show `practice.html` rendered in a browser: three cards, working toggle buttons, visible keyboard focus, and a contrast-checked colour pair. Explain, without looking at your notes, the difference between `textContent` and `innerHTML`.
+
+**Reflection:** why might a decorative display font be unsuitable for CVE identifiers or dense data tables?
+**Common mistakes:** hiding focus outlines "because they look messy"; using colour with no accompanying text; nesting headings out of order (`h1` straight to `h3`).
+**Stretch:** add a `prefers-color-scheme: dark` media query with a second colour set, and check both pairs for contrast.
+
+---
+
+# Lesson 6 — Build and understand the first Flask pages
+**Effort:** substantial. **Suggested Git checkpoint:** `add first Flask pages`.
 
 ## What Flask, HTML and templates do
-A web request has a **method** (for example GET), a **URL**, headers and a response. Flask maps a URL to a Python function called a **route**. The route calls a template. A Jinja template is HTML with safe placeholders such as `{{ name }}`. CSS controls appearance; JavaScript adds small browser behaviour.
+A web request has a **method** (for example GET), a **URL**, headers and a response. Flask maps a URL to a Python function called a **route**. The route calls a template. A Jinja template is HTML with safe placeholders such as `{{ name }}` — the same double-brace idea, layered on top of the plain HTML you wrote in Lesson 5. CSS controls appearance; JavaScript adds small browser behaviour, exactly as it did in your practice page.
 
-## Run the reference application locally
+## 6.1 One complete request, read slowly
+When you type an address into a browser, the browser requests a resource. The server responds with a status, headers and a body. The page you see is not "inside" Flask: Flask sends HTML to the browser, then the browser separately requests the CSS and JavaScript files referenced in it — just like your practice page's `<link>` and `<script>` tags.
+
+```text
+Browser request
+GET /health HTTP/1.1
+Host: 127.0.0.1:5000
+
+Server response
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"status":"ok"}
+```
+
+`GET` asks to read a resource. `/health` is the route. `200 OK` means the server completed the request successfully. `Content-Type: application/json` says the body is JSON, not HTML.
+
+## 6.2 Run the reference application locally
 ```bash
 source .venv/bin/activate
 python app.py
 ```
-Open `http://127.0.0.1:5000`. `127.0.0.1` means “this computer only”. Do **not** run Flask's development server on `0.0.0.0` on a public server. Stop it with `Ctrl+C`.
+Open `http://127.0.0.1:5000`. `127.0.0.1` means "this computer only". Do **not** run Flask's development server on `0.0.0.0` on a public server. Stop it with `Ctrl+C`.
 
-## Read before editing
-In `app.py`, find `@app.route("/")`. The `@` line is a decorator: it tells Flask which URL should call the function below it. In `templates/base.html`, find `{% block content %}`; child pages fill that named area. In `templates/index.html`, `{{ data.fetched_at }}` inserts a value and Jinja escapes text by default.
+### Lab: processes and ports
+A **process** is a running program. A **port** is a numbered doorway used for network traffic. A browser normally uses 80 (HTTP) or 443 (HTTPS); this local Flask example uses 5000. With `python app.py` still running, open a **second** terminal (a second SSH connection if you are on the server) and run:
 
-## Guided small change
+```bash
+ss -tulpn | grep 5000
+curl -i http://127.0.0.1:5000/health
+ps aux | grep '[p]ython app.py'
+```
+The square brackets in the last command stop `grep` from finding its own process in the list. Return to the first terminal and press `Ctrl+C` — this sends an interrupt to the program. Run the port command again; it should no longer show port 5000.
+
+**Checkpoint:** explain why Gunicorn will later bind to `127.0.0.1:8000` and Nginx, not Gunicorn, faces the public internet (Lesson 12).
+
+### Practise the request/response cycle
+```bash
+curl -i http://127.0.0.1:5000/health
+curl -i http://127.0.0.1:5000/not-a-page
+curl -I http://127.0.0.1:5000/
+```
+The first should be 200. The second should be 404, meaning the route does not exist. The third uses `-I` for headers only — find `Content-Security-Policy`, `Referrer-Policy` and `X-Content-Type-Options`. A header is not a substitute for safe code, but it adds a browser-side layer of protection.
+
+## 6.3 Read before editing
+In `app.py`, find `@app.route("/")`. The `@` line is a **decorator**: it tells Flask which URL should call the function below it. In `templates/base.html`, find `{% block content %}`; child pages fill that named area. In `templates/index.html`, `{{ data.fetched_at }}` inserts a value and Jinja escapes text by default — the same escaping behaviour you saw JavaScript's `textContent` provide in Lesson 5.
+
+## 6.4 Guided task: build your own route and template
+This is the moment you write a brand-new Flask page from nothing, not just edit an existing one.
+
+1. In `app.py`, add a small Python list near the top, using three records from your practice dataset:
+   ```python
+   PRACTICE_CVES = [
+       {"id": "CVE-2026-90001", "description": "Northstar Archive Server 4 — the backup endpoint never checks who is asking.", "severity": "CRITICAL", "score": 9.8, "known_exploited": False},
+       {"id": "CVE-2026-90002", "description": "BrightDesk Remote Support 7 — ships with an unchangeable default support password.", "severity": "HIGH", "score": 8.1, "known_exploited": True},
+       {"id": "CVE-2026-90006", "description": "Anchor Payments Gateway — the administrator account has a weak, guessable password.", "severity": "CRITICAL", "score": 9.1, "known_exploited": True},
+   ]
+   ```
+2. Add a new route function, near the other routes inside `create_app`:
+   ```python
+   @app.route("/practice")
+   def practice():
+       return render_template("practice.html", cves=PRACTICE_CVES)
+   ```
+3. Create `templates/practice.html`:
+   ```jinja
+   {% extends 'base.html' %}
+   {% block content %}
+     <h1>Practice CVE list</h1>
+     <p>This page uses a small hand-written list, not live NVD data.</p>
+     <div class="cve-list">
+       {% for cve in cves %}
+         <article class="cve">
+           <h3>{{ cve.id }}</h3>
+           <p>{{ cve.description }}</p>
+           <p>
+             <span class="badge severity-{{ cve.severity|lower }}">{{ cve.severity }}</span>
+             Score: {{ cve.score }}
+             {% if cve.known_exploited %}<span class="badge kev">Known Exploited</span>{% endif %}
+           </p>
+         </article>
+       {% endfor %}
+     </div>
+   {% endblock %}
+   ```
+4. Restart `python app.py` and visit `http://127.0.0.1:5000/practice`. You should see your three cards, already styled by `styles.css` because you reused the same class names as the real dashboard.
+
+Notice the parallels with Lesson 5: `{% for cve in cves %}` is Jinja's loop syntax, doing the same job as the JavaScript `.forEach` you will meet in Lesson 10; `{% if cve.known_exploited %}` mirrors the `if` statement from Lesson 4's Python; `{{ cve.severity|lower }}` applies a **filter** (`lower`) to a value before inserting it.
+
+**Checkpoint:** `/practice` loads with three correctly styled cards and no traceback. Explain, in your own words, the path a request takes from typing the URL to seeing the card.
+
+## 6.5 Guided small change to the real pages
 1. Open `templates/index.html` using `nano`.
 2. Under the introductory paragraph, type one sentence explaining your chosen audience. This is **your code/text**, not starter code.
 3. Save, refresh the browser, then use browser DevTools: right-click the sentence → Inspect.
 4. Change one CSS colour in `static/css/styles.css`, refresh, and use the DevTools Elements/Styles panel to see the applied rule.
-5. Run `curl -i http://127.0.0.1:5000/health`. Identify the `HTTP/` status line and JSON body.
 
-**Experiment A:** change `/health` to a nonexistent URL in curl; notice `404`. **Experiment B:** deliberately remove a closing Jinja brace, reload, read the error locally, restore it immediately. Production visitors receive a generic error page, not a traceback.
+### Deliberate experiments
+**Experiment A:** change `/health` to a nonexistent URL in curl; notice `404`. **Experiment B:** deliberately remove a closing Jinja brace from `templates/practice.html`, reload, read the error locally, then restore it immediately. Production visitors receive a generic error page, not a traceback.
 
-**Likely errors:** `Address already in use` means another process owns port 5000; use `ss -tulpn | grep 5000` and stop only your process. `TemplateNotFound` usually means wrong filename/folder. A browser cache can hide CSS changes; hard refresh with Ctrl+Shift+R.
+**Likely errors:** `Address already in use` means another process owns port 5000; use `ss -tulpn | grep 5000` and stop only your own process. `TemplateNotFound` usually means a wrong filename or folder — check `templates/practice.html` is spelled and placed exactly as referenced. A browser cache can hide CSS changes; hard refresh with `Ctrl+Shift+R`.
 
 ---
 
-# Lesson 6 — Model OWASP Top 10 content
+# Lesson 7 — Model OWASP Top 10 content with JSON
 **Effort:** medium. **Suggested Git checkpoint:** `display OWASP teaching data`.
 
 ## Why local JSON?
-JSON is a text data format using objects `{}` and lists `[]`. The project keeps OWASP material in `data/owasp_top_10.json`, rather than scraping a webpage every request. That makes lessons reliable and lets a maintainer review wording. The source file labels official summaries separately from student-friendly explanations.
+JSON is a text data format using objects `{}` and lists `[]` — the same shape as the Python dictionaries and lists from Lesson 4. The project keeps OWASP material in `data/owasp_top_10.json`, rather than scraping a webpage every request. That makes lessons reliable and lets a maintainer review wording. The source file labels official summaries separately from student-friendly explanations.
 
-## Read the data
-Open it with `less data/owasp_top_10.json`. Find `edition`, `categories`, an `id`, `name`, `explanation`, `example`, `impact`, `prevention`, `url`, and `cwes`. A comma separates fields; strings require quotation marks. Run:
+## Reading JSON, one value at a time
+JSON uses braces `{}` for an object: named values such as `"id": "A01:2021"`. It uses square brackets `[]` for an ordered list of objects. A comma separates items, and indentation only helps a human reader — it does not change the data. JSON uses `true`, `false` and `null`, not Python's `True`, `False` and `None`, though `json.loads` converts between them automatically.
+
+Open the real file with `less data/owasp_top_10.json`. Find `edition`, `categories`, and inside one category: `id`, `name`, `explanation`, `example`, `impact`, `prevention`, `url` and `cwes`. Then check it is syntactically valid:
 ```bash
 python -m json.tool data/owasp_top_10.json > /dev/null
 echo $?
 ```
 Exit code `0` means valid JSON. If invalid, Python prints a line/column. Go to that line and look for a missing comma, quote or bracket.
 
-## Guided task
+## Guided task: author a JSON file from scratch
+Before touching the real content file, practise writing JSON yourself with lower stakes. Create `~/dashboard-lab/owasp-practice.json` and type these three **invented** teaching categories by hand (do not copy-paste):
+
+```json
+{
+  "edition": "Classroom practice set (not a real OWASP release)",
+  "categories": [
+    {
+      "id": "PRACTICE-01",
+      "name": "Oversharing Error Messages",
+      "explanation": "A page shows a full technical error to every visitor instead of a short, friendly message.",
+      "example": "A mistyped web address returns a stack trace with internal file paths.",
+      "impact": "Helps an attacker learn about your system's internals.",
+      "prevention": "Show a generic message to visitors; log full detail only for developers."
+    },
+    {
+      "id": "PRACTICE-02",
+      "name": "Trusting Whatever the Browser Sends",
+      "explanation": "The server assumes a value from a form or URL is already valid.",
+      "example": "A page trusts a hidden price field instead of checking it on the server.",
+      "impact": "A visitor can submit a value the design never expected.",
+      "prevention": "Validate and re-check every value on the server, not only in the browser."
+    },
+    {
+      "id": "PRACTICE-03",
+      "name": "Never Expiring a Login",
+      "explanation": "A logged-in session stays valid forever, even on a shared computer.",
+      "example": "A shared library computer stays logged in to a student's account the next day.",
+      "impact": "Someone else could use an account that should have expired.",
+      "prevention": "Expire sessions after inactivity and give users a clear sign-out."
+    }
+  ]
+}
+```
+
+1. Validate it: `python -m json.tool ~/dashboard-lab/owasp-practice.json > /dev/null && echo valid`.
+2. Deliberately delete one comma between two fields, run the command again, and read exactly what Python reports. Note the line/column, then fix it.
+3. Add a fourth invented category of your own, following the same shape, and validate again.
+
+## Guided task on the real content
 1. Visit `/owasp` and locate one category.
-2. In the matching JSON item, improve **one** student explanation in plain English. Keep the meaning accurate and do not invent a claim about OWASP.
+2. In the matching entry inside `data/owasp_top_10.json`, improve **one** student explanation in plain English. Keep the meaning accurate and do not invent a claim about OWASP.
 3. Refresh `/owasp`; check the card, link text and keyboard tab order.
-4. Add a decision record explaining why you retained cards or chose a different layout.
+4. Add a decision record explaining why you retained cards or chose a different layout (see your Lesson 1 decision record).
+5. Using the "Best-fit OWASP category" column from your practice dataset in section 0, check each mapping against the real `data/owasp_top_10.json` categories. Do you agree with all eight? Note any you would map differently and why.
 
 ### Maintenance process
 Before a future update, read the official OWASP Top 10 project, record the date and edition, compare categories, update the local JSON and links, label any student-written text, validate JSON, test `/owasp`, ask another person to review, then commit with a clear message. Never scrape OWASP at runtime.
 
 ---
 
-# Lesson 7 — Learn APIs with NVD fixtures and `curl`
+# Lesson 8 — Learn APIs with NVD fixtures and curl
 **Effort:** substantial. **Suggested Git checkpoint:** `learn NVD API request`.
 
 ## API vocabulary
-An **API** is an agreed way for programs to exchange information. An **endpoint** is an API URL. A **query parameter** adds a choice after `?`, for example `?resultsPerPage=1`. A **header** carries request metadata. A **status code** reports result: 200 successful, 400 invalid request, 401/403 access issue, 404 absent, 429 rate limit, 500 server fault. JSON can nest lists and dictionaries.
+An **API** is an agreed way for programs to exchange information. An **endpoint** is an API URL. A **query parameter** adds a choice after `?`, for example `?resultsPerPage=1`. A **header** carries request metadata. A **status code** reports the result: 200 successful, 400 invalid request, 401/403 access issue, 404 absent, 429 rate limit, 500 server fault.
 
 ## Exercise A: make a small manual request
 When network access is permitted, run:
 ```bash
 curl -i 'https://services.nvd.nist.gov/rest/json/cves/2.0?resultsPerPage=1'
 ```
-`-i` includes response headers. Find the first `HTTP` status, `Content-Type`, then the JSON body. Do not repeatedly run it: unauthenticated NVD requests are rate limited. If the classroom network blocks it, use the saved fixture below—this is a valid offline learning route.
+`-i` includes response headers. Find the first `HTTP` status, `Content-Type`, then the JSON body. Do not repeatedly run it: unauthenticated NVD requests are rate limited. If the classroom network blocks it, use the saved fixture below — this is a valid offline learning route.
 
-## Exercise B: inspect a saved response
+## Exercise B: inspect a saved response, one nested step at a time
+NVD's JSON nests much deeper than the flat OWASP file from Lesson 7. Here is a small **invented** example of the same shape:
+
+```json
+{
+  "totalResults": 2,
+  "vulnerabilities": [
+    {
+      "cve": {
+        "id": "CVE-2026-90001",
+        "published": "2026-03-01T09:30:00.000",
+        "descriptions": [
+          {"lang": "en", "value": "Invented archive service example."},
+          {"lang": "fr", "value": "Exemple inventé."}
+        ],
+        "metrics": {
+          "cvssMetricV31": [
+            {"cvssData": {"version": "3.1", "baseScore": 9.8, "baseSeverity": "CRITICAL"}}
+          ]
+        }
+      }
+    },
+    {
+      "cve": {
+        "id": "CVE-2026-90004",
+        "descriptions": [],
+        "metrics": {}
+      }
+    }
+  ]
+}
+```
+
+Follow the first score with this route: root object → `vulnerabilities` list → first item `[0]` → `cve` object → `metrics` object → `cvssMetricV31` list → first item `[0]` → `cvssData` object → `baseScore`. This explains why API-handling code can look long even when the final displayed value is only `9.8`. Notice the second record has no score at all — `metrics` is an empty object — matching CVE-2026-90004 in your practice dataset, which really is unscored.
+
+Now inspect the real fixture:
 ```bash
 python -m json.tool tests/fixtures/nvd_sample.json | less
 ```
-Find `CVE-2026-0001`, the English `description`, `published`, `baseScore`, and `baseSeverity`. Notice that `vulnerabilities` is a list, then each item has a `cve` dictionary. `tests/fixtures` is controlled sample data, not live data.
+Find `CVE-2026-0001`, the English `description`, `published`, `baseScore`, and `baseSeverity`. `tests/fixtures` is controlled sample data, not live data.
+
+### Practise with Python
+Create `~/dashboard-lab/read_json.py`:
+```python
+import json
+from pathlib import Path
+
+text = Path("tests/fixtures/nvd_sample.json").read_text()
+payload = json.loads(text)
+first = payload["vulnerabilities"][0]["cve"]
+print(first["id"])
+print(first["descriptions"][0]["value"])
+print(first["metrics"]["cvssMetricV31"][0]["cvssData"]["baseScore"])
+```
+`json.loads()` turns JSON text into Python dictionaries and lists — the exact objects you practised building by hand in Lesson 4. Square brackets select a known key or list position. Run it from the project folder so the relative fixture path is correct.
+
+**Experiment 1:** change `[0]` to `[1]` for the second record and observe the error when it has no description. Restore it. **Experiment 2:** print `payload["totalResults"]` and explain why this is easier — it sits directly inside the root object, with no list index needed.
+**Likely error:** `KeyError` means a dictionary key is missing; `IndexError` means a requested list position is absent. Robust application code uses `.get` and fallback values where external data may be incomplete — exactly the reasoning behind Lesson 9's normaliser.
 
 ## Exercise C: request from Python
 Read `services/nvd_client.py`. The important starter code is:
@@ -350,28 +938,71 @@ response = requests.get(NVD_URL, params=parameters, headers=headers, timeout=tim
 response.raise_for_status()
 payload = response.json()
 ```
-`requests.get` sends HTTP GET. `params` becomes query parameters safely. `timeout` prevents waiting forever. `raise_for_status` turns bad HTTP status into an exception. `.json()` parses JSON. **Do not type an API key into this file.** The app reads `NVD_API_KEY` from an environment variable.
+`requests.get` sends HTTP GET. `params` becomes query parameters safely. `timeout` prevents waiting forever. `raise_for_status` turns a bad HTTP status into an exception. `.json()` parses JSON. **Do not type an API key into this file.** The app reads `NVD_API_KEY` from an environment variable.
 
-**Controlled experiments:** (1) in a scratch Python file, print `response.status_code` after a permitted one-record request; (2) set `timeout=0.001` only in a local experiment and observe error handling, then restore it.
+**Controlled experiments:** (1) in a scratch Python file, print `response.status_code` after a permitted one-record request; (2) set `timeout=0.001` only in a local experiment and observe the error handling, then restore it.
 **Likely errors:** 429 means wait and use cache, not a loop; invalid JSON should be handled as unavailable data; 500 is usually upstream; a timeout may be network or service delay.
 
 ---
 
-# Lesson 8 — Normalise, cache and enrich CVEs
-**Effort:** substantial. **Suggested Git checkpoint:** `normalise cache and enrich Cves`.
+# Lesson 9 — Normalise, cache and enrich CVEs
+**Effort:** substantial. **Suggested Git checkpoint:** `normalise cache and enrich CVEs`.
 
 ## Why a normalisation layer exists
 NVD's full JSON is designed for many uses. Templates only need a small model. `services/normalisers.py` converts each record to `id`, `description`, dates, score, severity, CVSS version, CWEs, NVD URL and optional KEV details. It carefully handles missing English text, no score and no CWE. Do not pass an entire external response directly into templates.
+
+Compare the shapes directly:
+
+|Upstream concept|Possible NVD location|Internal dashboard value|
+|---|---|---|
+|Identifier|`cve.id`|`id`|
+|English description|one item in `cve.descriptions`|`description`|
+|Base score|one CVSS metric version|`score`|
+|Severity|same metric|`severity`|
+|Weakness names|nested `weaknesses` descriptions|`weaknesses` list|
+|External link|built from identifier|`nvd_url`|
+
+For CVE-2026-90001 from your practice dataset, the normalised result looks like this:
+
+```python
+{
+    "id": "CVE-2026-90001",
+    "description": "Northstar Archive Server 4 — the backup endpoint never checks who is asking.",
+    "published": "2026-03-01T09:30:00.000",
+    "last_modified": None,
+    "score": 9.8,
+    "severity": "CRITICAL",
+    "cvss_version": "3.1",
+    "weaknesses": ["CWE-284"],
+    "nvd_url": "https://nvd.nist.gov/vuln/detail/CVE-2026-90001",
+    "known_exploited": False,
+    "kev_details": None,
+}
+```
+
+For CVE-2026-90004 (Harbor Print Queue, not scored), the same function must produce `"score": None` and still label it sensibly rather than showing `0` or crashing — `None` is not zero, and an absent score is not "low risk".
 
 ## Read one function line-by-line
 ```python
 metric = next((metrics[key][0] for key in (...) if metrics.get(key)), {})
 score = cvss.get("baseScore")
 ```
-`next(..., {})` takes the first available metric or safely uses an empty dictionary. `.get` returns `None` instead of crashing when a key is absent. This is starter code. Your task is to explain it in a comment or notebook, not rewrite it from memory.
+This is the exact pattern you practised in Lesson 4.2: a generator expression inside `next(..., {})` takes the first available metric version, or safely falls back to an empty dictionary if none exist. `.get` returns `None` instead of crashing when a key is absent. This is starter code. Your task is to explain it in your own words in a comment or notebook, not rewrite it from memory.
 
 ## Cache concepts
-A cache is a saved successful result. It improves speed and respects rate limits. `CACHE_TTL_SECONDS` decides how long data is **fresh** (default 30 minutes). After that, the app tries NVD. If NVD fails and old data exists, it shows **stale** cached data and a warning. `write_cache` writes a temporary file then replaces it so a crash does not leave half JSON. It never stores the API key. Production systems might use Redis/database because multiple servers need shared, managed storage.
+A cache is a saved successful result. It improves speed and respects rate limits. `CACHE_TTL_SECONDS` decides how long data is **fresh** (default 30 minutes). After that, the app tries NVD. If NVD fails and old data exists, it shows **stale** cached data and a warning. `write_cache` writes a temporary file then replaces it so a crash does not leave half-written JSON. It never stores the API key.
+
+Assume `CACHE_TTL_SECONDS=1800` (30 minutes):
+
+|Time|What happens|What the user should see|
+|---|---|---|
+|09:00|NVD succeeds; 20 normalised records are written|"Last refreshed 09:00"; normal dashboard|
+|09:10|Page reloads; cache is 10 minutes old|Same data quickly; no NVD request needed|
+|09:31|Cache is 31 minutes old; NVD succeeds|New cache written; normal dashboard|
+|10:02|Cache is 31 minutes old; NVD times out|Older records plus a clear "Showing older cached data" warning|
+|10:05|No cache exists; NVD fails|Friendly unavailable-data message, not a traceback|
+
+**Reflection:** why is "always show the last result with no warning" misleading? *Answer:* users could make a time-sensitive decision believing old data is current. Production systems handling many servers at once might use Redis or a database instead of a single file, because several servers need shared, managed storage — a file cache is deliberately simple for a single-server classroom deployment.
 
 ## Guided tasks
 1. Create local configuration without committing it: `cp .env.example .env`. Read the comments. Leave `NVD_API_KEY` blank; the app must work without it.
@@ -387,36 +1018,82 @@ A cache is a saved successful result. It improves speed and respects rate limits
    ```
    This is provided classroom setup code. Read it: it loads JSON, normalises it, then writes cache data.
 3. Run the app and visit `/`, `/cves`, `/api/cves`. Confirm fixture data appears.
-4. Set `CACHE_TTL_SECONDS=1` in your shell (`export CACHE_TTL_SECONDS=1`), restart the app, wait two seconds and disconnect/disable external access only on a non-production/local test environment. Observe the stale warning when upstream data cannot refresh. Restore the default by closing that terminal or `unset CACHE_TTL_SECONDS`.
-5. Explain why the CISA client catches failures and still returns CVEs.
+4. Run the cache test suite with extra detail to see the stale-fallback behaviour proven automatically:
+   ```bash
+   pytest -q tests/test_cache.py -vv
+   ```
+   Read the test before and after running it. Find the mock that deliberately makes NVD fail — this is safer than disabling a real network connection to test failure.
+5. Set `CACHE_TTL_SECONDS=1` in your shell (`export CACHE_TTL_SECONDS=1`), restart the app, wait two seconds, and disconnect/disable external access only on a non-production/local test environment. Observe the stale warning when upstream data cannot refresh. Restore the default by closing that terminal or `unset CACHE_TTL_SECONDS`.
+6. Explain why the CISA client catches failures and still returns CVEs.
 
 ---
 
-# Lesson 9 — Make the CVE explorer usable and safe
+# Lesson 10 — Make the CVE explorer usable and safe
 **Effort:** medium. **Suggested Git checkpoint:** `add search filters and accessible UX`.
 
 ## Browser filtering
-The server supplies a normalised list. `static/js/dashboard.js` filters the list in the browser by search, severity, minimum score and KEV flag, then sorts it. This is suitable for a small teaching data set. Larger data needs pagination/server-side filtering.
+The server supplies a normalised list. `static/js/dashboard.js` filters the list in the browser by search, severity, minimum score and KEV flag, then sorts it — using the same `Array.filter`/`Array.sort` idea as the toggle behaviour you built by hand in Lesson 5, just applied to a bigger dataset. This is suitable for a small teaching data set. Larger data needs pagination/server-side filtering.
 
 ### Critical security detail
-API descriptions are external input. Inserting it with `innerHTML` can make the browser interpret markup. The reference creates elements and uses `textContent`, which displays data as text. Keep this behaviour. Jinja also escapes `{{ values }}` by default.
+Lesson 5 showed why `dashboard.js` creates elements and sets `.textContent` for CVE descriptions, never `.innerHTML`: API descriptions are external input, and `innerHTML` would let the browser interpret markup inside them. Keep this behaviour when you extend the file. Jinja also escapes `{{ values }}` by default.
+
+## Predict the filters before you test them
+Use your eight-record practice dataset from section 0 (reproduced here for convenience):
+
+|ID|Severity|Score|Known exploited|
+|---|---:|---:|---|
+|CVE-2026-90001|CRITICAL|9.8|No|
+|CVE-2026-90002|HIGH|8.1|Yes|
+|CVE-2026-90003|MEDIUM|5.4|No|
+|CVE-2026-90004|HIGH|not scored|No|
+|CVE-2026-90005|MEDIUM|6.5|No|
+|CVE-2026-90006|CRITICAL|9.1|Yes|
+|CVE-2026-90007|MEDIUM|4.3|No|
+|CVE-2026-90008|HIGH|7.2|No|
+
+Write down your prediction for each before checking the answer:
+
+1. Severity = HIGH → **90002, 90004, 90008** (three records).
+2. Minimum score = 8.0 → **90001 (9.8), 90002 (8.1), 90006 (9.1)**; the not-scored record 90004 is not included.
+3. Known Exploited only → **90002, 90006**.
+4. Severity = HIGH **and** Known Exploited only → **90002 only**.
+5. Severity = HIGH **and** minimum score = 9.0 → **no matches**; 90002 scores 8.1, 90004 has no score, 90008 scores 7.2. The empty-state message should explain what happened rather than showing a blank page.
+6. Severity = CRITICAL → **90001, 90006**.
+
+Load this same data into `/cves` (using the cache-population step from Lesson 9) and repeat each prediction against the real UI. Use **Clear filters** between attempts. If a result surprises you, read the values shown on each card before assuming the code is wrong.
 
 ## Guided tasks
 1. Open `/cves`. Search an identifier, choose each severity, set a minimum score, tick KEV-only, change sort and press Clear filters.
 2. Use Tab, Shift+Tab, Enter and Space only. Can you open navigation, use every form control and read the result-count update?
-3. Use responsive mode in DevTools (or shrink browser under 650px). Open and close Menu. Check text does not overlap and focus outline is visible.
+3. Use responsive mode in DevTools (or shrink the browser under 650px). Open and close Menu. Check text does not overlap and the focus outline is visible.
 4. Add one plain-English empty-state sentence or improve an accessible label. Test it with a deliberately non-matching search.
-5. Inspect `dashboard.js` and identify the line using `textContent`. Explain why a description containing angle brackets is displayed, rather than run.
+5. Inspect `dashboard.js` and identify the line using `textContent`. Explain why a description containing angle brackets is displayed as text, rather than run as markup.
 
-**Common mistakes:** hiding focus outlines; using red/green without words; changing `textContent` to `innerHTML`; assuming “not scored” means low risk.
+**Common mistakes:** hiding focus outlines; using red/green without words; changing `textContent` to `innerHTML`; assuming "not scored" means low risk.
 
 ---
 
-# Lesson 10 — Test, debug and security-review
+# Lesson 11 — Test, debug and security-review
 **Effort:** substantial. **Suggested Git checkpoint:** `test and security review`.
 
 ## What tests are
 A test is repeatable evidence. **Arrange** creates inputs; **Act** calls code; **Assert** checks expected output. Unit tests check a small unit such as a normaliser. Route tests check Flask responses. Fixtures provide predictable data. Mocks replace a live dependency to simulate timeout/failure. Tests must not depend on a live public API because its data/network can change.
+
+### Worked example: Arrange, Act, Assert
+```python
+def test_unscored_record_has_safe_fallback():
+    # Arrange: make a tiny upstream record without metrics, matching
+    # CVE-2026-90004 from the practice dataset, which really is unscored.
+    upstream = {"cve": {"id": "CVE-2026-90004", "descriptions": [], "metrics": {}}}
+
+    # Act: convert it using the normaliser.
+    result = normalise_cve(upstream)
+
+    # Assert: check the two important promises.
+    assert result["score"] is None
+    assert result["description"] == "No English description supplied."
+```
+`def` starts a function. Comments explain each stage. `assert` fails the test when its condition is false. The existing test suite follows the same idea using fixtures.
 
 ## Run and read tests
 ```bash
@@ -425,6 +1102,11 @@ pytest -q
 ruff check .
 ```
 `-q` means quieter output. `ruff` checks style and likely mistakes. Read `tests/test_normalisers.py`, then identify Arrange, Act and Assert. Read `tests/test_cache.py`: `monkeypatch` temporarily replaces the network function so failure is safe and repeatable.
+
+### Practise
+1. Read `tests/test_normalisers.py` and label its Arrange, Act and Assert statements in your notebook or evidence record.
+2. Run one file: `pytest -q tests/test_normalisers.py`.
+3. Change one expected value in a temporary local copy, run the test, read the failure, then undo the change with `git restore tests/test_normalisers.py`. A red test contains useful information: expected value, actual value and line number.
 
 ## Guided test task
 Add one test for `/api/cves?severity=HIGH` using the fixture/cache pattern in `test_routes.py`. First predict expected count, run the test, then make it pass. Do not call NVD from the test. Commit only when the full suite passes.
@@ -443,13 +1125,13 @@ The first checks response headers. The second checks accidental files. The third
 
 ---
 
-# Lesson 11 — Deploy with Gunicorn, systemd and Nginx
+# Lesson 12 — Deploy with Gunicorn, systemd and Nginx
 **Effort:** substantial. **Suggested Git checkpoint:** `deploy vulnerability dashboard securely`; **release tag:** `v1.0.0`.
 
 Follow `deployment/DEPLOYMENT.md` in order. It is written so you can verify each step yourself. This workbook explains the why; that guide gives exact verified commands and rollback. Do not skip the second SSH connection/firewall checks.
 
 ## Production terms
-* **Gunicorn:** production server that runs Flask worker processes; bind it to `127.0.0.1:8000`, not public internet.
+* **Gunicorn:** production server that runs Flask worker processes; bind it to `127.0.0.1:8000`, not the public internet.
 * **systemd:** Ubuntu service manager. It starts Gunicorn after reboot and keeps logs.
 * **Nginx:** public reverse proxy. It receives web traffic, serves as a controlled front door and forwards to Gunicorn.
 * **UFW:** host firewall. Allow SSH and Nginx HTTP/HTTPS only.
@@ -463,22 +1145,37 @@ Follow `deployment/DEPLOYMENT.md` in order. It is written so you can verify each
 5. Copy the provided systemd service, run `daemon-reload`, enable/start, inspect `systemctl status` and `journalctl -u vulnerability-dashboard`.
 6. Copy Nginx configuration, set the real domain, run `sudo nginx -t` **before** reload, then reload and test public routes/static CSS.
 7. Apply UFW Nginx rule after confirming SSH safety. Check `ss -tulpn`.
-8. If a domain exists, obtain/test Certbot HTTPS; otherwise document HTTP/private-classroom limitation.
+8. If a domain exists, obtain/test Certbot HTTPS; otherwise document the HTTP/private-classroom limitation.
 9. Reboot only after recording a working rollback path and prove the service returns after reboot.
-10. Practise update/rollback: record commit, update in a branch, test, restart, health-check; return to recorded commit if it fails.
+10. Practise update/rollback: record commit, update in a branch, test, restart, health-check; return to the recorded commit if it fails.
+11. Tag the tested, working deployment: `git tag -a v1.0.0 -m "First classroom release"`.
+
+## Worked example: diagnosing a failed deploy
+### Scenario
+You run `systemctl status vulnerability-dashboard --no-pager` and see `Active: failed`. The public Nginx page displays `502 Bad Gateway`.
+
+### Reasoning route
+1. A 502 means Nginx could not get a suitable response from the upstream application. It does not automatically mean Nginx is broken.
+2. On the server, run `curl -i http://127.0.0.1:8000/health`. If it cannot connect, investigate Gunicorn/systemd first.
+3. Run `journalctl -u vulnerability-dashboard -n 50 --no-pager`. Read the first relevant error line.
+4. Suppose it says the Python executable does not exist. Compare `ExecStart` in `/etc/systemd/system/vulnerability-dashboard.service` with `ls -l /srv/vulnerability-dashboard/.venv/bin/gunicorn`.
+5. Correct only the path, run `sudo systemctl daemon-reload`, then `sudo systemctl restart vulnerability-dashboard`.
+6. Re-test local health, then `sudo nginx -t`, then the public page. Record the evidence.
+
+Do not restart every service repeatedly without reading logs. The order above identifies which layer failed and proves the repair. Use `TROUBLESHOOTING.md` for further decision trees (site will not load, Nginx loads but the app does not, Gunicorn works manually but systemd fails, NVD errors, CSS/JS not loading, permission denied).
 
 ---
 
-# Lesson 12 — Present, evaluate and extend
+# Lesson 13 — Present, evaluate and extend
 **Effort:** medium. **Suggested Git checkpoint:** `document final evaluation`.
 
 ## Final demonstration checklist
 Demonstrate: (1) dashboard, (2) OWASP content, (3) live/recent cached CVEs, (4) search/filter, (5) failure handling, (6) request architecture, (7) Git history, (8) tests, (9) security controls, (10) one design decision, (11) one diagnosed problem, (12) next feature.
 
 ### Likely questions and strong answers
-* **Why cache?** “It makes pages faster and reduces NVD rate-limit pressure. If NVD fails, we label older data as stale rather than pretending it is fresh.”
-* **Why Nginx and Gunicorn?** “Nginx is the public reverse proxy. Gunicorn runs Flask privately on localhost. This avoids exposing the development server.”
-* **How did you handle untrusted descriptions?** “Jinja escapes template values and our JavaScript uses `textContent`, not `innerHTML`.”
+* **Why cache?** "It makes pages faster and reduces NVD rate-limit pressure. If NVD fails, we label older data as stale rather than pretending it is fresh."
+* **Why Nginx and Gunicorn?** "Nginx is the public reverse proxy. Gunicorn runs Flask privately on localhost. This avoids exposing the development server."
+* **How did you handle untrusted descriptions?** "Jinja escapes template values and our JavaScript uses `textContent`, not `innerHTML`."
 * **What would you add?** Name an extension, its risk and its acceptance test.
 
 ## Optional extension cards (easy to harder)
@@ -508,7 +1205,7 @@ For every extension, write: **new concept, prerequisite, approach, risk, accepta
 
 # Appendix A — Challenge cards
 
-1. **No CVSS score:** a card has no score. *Hints:* inspect `None`; use the existing fallback. *Success:* “Not scored” and no crash. *Practises:* optional data.
+1. **No CVSS score:** a card has no score. *Hints:* inspect `None`; use the existing fallback. *Success:* "Not scored" and no crash. *Practises:* optional data.
 2. **HTTP 429:** NVD limits you. *Hints:* status, TTL, cache. *Success:* friendly warning/no retry loop. *Practises:* rate limits.
 3. **Timeout:** network stalls. *Hints:* timeout and mock. *Success:* cache fallback. *Practises:* resilience.
 4. **Special characters:** description has markup characters. *Hints:* text node/Jinja. *Success:* text appears literally. *Practises:* XSS prevention.
@@ -520,6 +1217,8 @@ For every extension, write: **new concept, prerequisite, approach, risk, accepta
 10. **New OWASP edition:** *Hints:* maintenance process. *Success:* reviewed local JSON update, validation and commit. *Practises:* content maintenance.
 11. **Dependency advisory:** *Hints:* pinned version/test branch. *Success:* evidenced update or documented risk decision. *Practises:* supply chain.
 12. **Explain priority:** manager asks CVSS vs KEV. *Hints:* severity/exploitation/context. *Success:* accurate 30-second answer. *Practises:* communication.
+13. **No visible label:** a form input has no associated label. *Hints:* `<label for>` and matching `id`. *Success:* the field is identifiable without seeing the page. *Practises:* accessible forms.
+14. **Comprehension confusion:** a list/generator expression is hard to read. *Hints:* rewrite it as a plain `for` loop first, then compare. *Success:* the same output either way, plus a plain-English explanation. *Practises:* Python fundamentals.
 
 # Appendix B — Responsible AI assistance log
 
@@ -528,494 +1227,3 @@ AI may explain errors, unfamiliar syntax, test ideas, a small function, fixtures
 |Date|Question asked|Tool|Useful response|What I verified|What I changed|What I learned|
 |---|---|---|---|---|---|---|
 | | | | | | | |
-
----
-
-# Appendix C — Foundation labs: learn the tools before you need them
-
-These short labs are deliberately separate from the main application. They give you a safe place to practise. Complete them in your home folder, not in `/etc`, `/usr` or the project folder. Every lab starts with a concept, then an example, then a small task. If something goes wrong, use `pwd` and `ls -la` before doing anything else.
-
-## Lab C1 — Paths, folders and files
-
-### Overview
-A computer stores files inside folders (also called directories). A **path** is the route to a file. An **absolute path** starts at `/`, the top of the Linux filesystem: `/home/student/notes.txt`. A **relative path** starts from where you are now: `notes.txt`. `~` is a shortcut for your home folder. The shell is a program which reads commands one line at a time.
-
-### Try it
-```bash
-pwd
-mkdir -p ~/dashboard-lab/week1
-cd ~/dashboard-lab/week1
-pwd
-ls -la
-touch first-note.txt
-ls -la
-```
-
-`touch` creates an empty file if it does not exist. It is also used to update a file timestamp. `mkdir -p` makes all missing folders in a path and does not complain if they already exist. In the output of `ls -la`, the first character `d` means directory and `-` means ordinary file.
-
-### Guided challenge
-1. Create `~/dashboard-lab/week1/assets`.
-2. Enter it using `cd` and prove your location with `pwd`.
-3. Create `colours.txt` with `touch`.
-4. Go back one folder with `cd ..`.
-5. List the contents of `assets` without entering it: `ls -la assets`.
-6. Return home with `cd` on its own. Why does this work?
-
-**Checkpoint:** you can explain absolute, relative and home-folder paths.
-**Try a mistake safely:** type `cd missing-folder`. Read the error; then run `ls` to see why it failed. Do not create a random folder just to silence an error.
-
-## Lab C2 — Read and edit text safely
-
-### Overview
-Configuration and code are text files. A command-line editor does not protect you from mistakes, so make one change, save, inspect, then continue. `nano` is included because its shortcuts appear at the bottom of the screen.
-
-### Try it
-```bash
-cd ~/dashboard-lab/week1
-nano first-note.txt
-```
-Type three short lines. Save with `Ctrl+O`, press Enter to confirm the name, then exit with `Ctrl+X`. Now run:
-
-```bash
-cat first-note.txt
-less first-note.txt
-```
-
-`cat` prints a short file at once. `less` is better for long files: press Space to move down, `b` up, `/word` to search, and `q` to quit. Never use `cat` on a secret file in a shared screen recording.
-
-### Guided challenge
-1. Add a fourth line with `nano`.
-2. Search the file with `grep -n 'word-you-used' first-note.txt`. `-n` adds line numbers.
-3. Copy it: `cp first-note.txt backup-note.txt`.
-4. Compare names with `ls -l`.
-5. Rename the backup: `mv backup-note.txt checked-note.txt`.
-6. Print only the final two lines: `tail -n 2 first-note.txt`.
-
-**Checkpoint:** explain the difference between copying and moving.
-**Common error:** saving a file in the wrong folder. Use `pwd` before `nano`, or use an absolute path.
-
-## Lab C3 — Permissions in plain English
-
-### Overview
-Linux permissions decide who may read (`r`), write (`w`) or enter/execute (`x`) a file. `ls -l` shows three groups: owner, group, everyone else. A private key should not be readable by everyone. Do not solve every problem with `sudo` or `chmod 777`; that hides the question “who should really have access?”
-
-```bash
-cd ~/dashboard-lab/week1
-ls -l first-note.txt
-chmod 600 first-note.txt
-ls -l first-note.txt
-```
-`600` means owner can read/write; group and others have no permissions. This is appropriate for a private text note, not necessarily a shared web asset. Restore a normal readable example with `chmod 644 first-note.txt` (owner read/write; others read).
-
-**Checkpoint:** explain why a service account needs read permission to application files but should not own system configuration.
-**Safety rule:** only change permissions on files you own in this lab. Record the old mode before changing a production file.
-
-## Lab C4 — Processes, ports and stopping programs
-
-### Overview
-A **process** is a running program. A **port** is a numbered doorway used for network traffic. A browser normally uses 80 (HTTP) or 443 (HTTPS); the local Flask example uses 5000. A process bound to `127.0.0.1` accepts connections only from the same server.
-
-In one terminal, run `python app.py`. In a second terminal:
-
-```bash
-ss -tulpn | grep 5000
-curl -i http://127.0.0.1:5000/health
-ps aux | grep '[p]ython app.py'
-```
-
-The square brackets in the last command stop `grep` finding itself. Return to the first terminal and press `Ctrl+C`; this sends an interrupt to the program you started. Run the port command again. It should no longer show port 5000.
-
-**Checkpoint:** explain why Gunicorn later binds to `127.0.0.1:8000` and Nginx, rather than Gunicorn, is public.
-
-## Lab C5 — Reading command help
-
-### Overview
-Good developers do not memorise every option. They find help, read the relevant part and test a small example. On Ubuntu, `man` opens a manual page, `--help` gives short help, and `apropos` searches manual titles.
-
-```bash
-mkdir --help | less
-man ls
-apropos 'copy files'
-```
-Quit a manual with `q`. Look up `cp` and identify what recursive copying means before using `cp -r`. Do not run options merely because an example contains them.
-
----
-
-# Appendix D — Design studio: choose a name, type and colour system
-
-## Overview
-The reference implementation deliberately starts as **My Security Dashboard**. It is not your final product name. Naming and visual design should communicate purpose, not disguise security information. Choose your identity after the basic pages work so styling does not distract from learning the structure.
-
-## Step 1: create a small brand brief
-Pick one audience: a small IT team, an operations manager, a school technical team, or an informed learner. Pick three adjectives, such as “clear, calm, evidence-led”. Write only these three short answers in your decision record:
-
-* Who will use the dashboard?
-* What should they understand within ten seconds?
-* What should they do next?
-
-## Step 2: find a suitable font
-A dashboard should use one easy-to-read body font and, at most, one heading font. Good sources are: your operating system's system font stack (fastest and no download), [Google Fonts](https://fonts.google.com/) (look at the licence and load only needed weights), [Fontshare](https://www.fontshare.com/) (check its licence), or a permitted organisation brand font. Search for a sans-serif family with regular and bold weights. Examples to compare: Inter, Atkinson Hyperlegible, Source Sans 3, Noto Sans and IBM Plex Sans.
-
-Test the same sentence at 16px body size and 28–36px heading size. Reject a choice if the lowercase `l`, uppercase `I` and number `1` are hard to tell apart. Keep the core system font unless you can explain performance, licensing and accessibility implications of a web font.
-
-## Step 3: choose colours with a job
-Use three roles rather than random colours: dark neutral for text, light neutral for background/surfaces, and an accent for links/actions. Severity colours are extra indicators, never the only indicator. Sources for starting palettes include [Adobe Color](https://color.adobe.com/), [Coolors](https://coolors.co/), and the accessible examples in the [WebAIM Contrast Checker](https://webaim.org/resources/contrastchecker/). These tools suggest colours; you still test the final text/background pairing.
-
-1. Choose background, text and accent candidates.
-2. Test normal text contrast against its exact background; aim for WCAG AA (generally 4.5:1 for ordinary text).
-3. Open the existing page and use DevTools to inspect the CSS custom properties at the top of `styles.css`.
-4. Change only `--blue` in a branch, refresh, test links/focus/bars, then decide whether to keep it.
-
-## Step 4: apply your name safely
-In `templates/base.html`, find the page title and brand link. In `templates/index.html`, find the `<h1>`. Change the displayed text in both places to your chosen name. Do not rename Python modules, service users, folders or deployment files merely for branding: a public label and an operating-system identifier are different things.
-
-**Checkpoint:** keyboard users can still see which link/control has focus; page text remains readable; the name explains the dashboard purpose.
-**Reflection:** why might a decorative font be unsuitable for CVE identifiers?
-
----
-
-# Appendix E — Worked web-page reading exercise
-
-## Overview
-HTML gives information structure. CSS gives presentation. JavaScript responds to actions. Reading a small page from the outside in is a useful way to understand it.
-
-### HTML example
-```html
-<label for="search">Search CVEs</label>
-<input id="search" type="search" aria-describedby="search-help">
-<p id="search-help">Search an identifier or description.</p>
-```
-`label` names the control; `for` connects it to the input `id`; `type="search"` tells the browser the purpose; `aria-describedby` connects helpful text. The student task is to identify a comparable label in `templates/cves.html`, then test it with keyboard focus.
-
-### CSS example
-```css
-.card {
-  background: var(--card);
-  padding: 1rem;
-  border-radius: .5rem;
-}
-```
-A **selector** (`.card`) chooses elements with that class. A **declaration** has a property and value. `var(--card)` reuses a named colour. `1rem` is relative to base text size. Experiment in DevTools first: change `padding` from `1rem` to `2rem`; observe the result; then refresh to discard the experiment.
-
-### JavaScript example
-```javascript
-const button = document.querySelector('#menu');
-button.addEventListener('click', () => {
-  button.setAttribute('aria-expanded', 'true');
-});
-```
-`const` creates a named value; `querySelector` finds an element; `addEventListener` waits for a click; the arrow function runs after the click. The real code toggles rather than permanently sets the state. Find it in `dashboard.js` and test the Menu using keyboard.
-
----
-
-# Appendix F — Complete worked examples and practice data
-
-This appendix supplies the missing “see one first” stage for the main lessons. Everything labelled **invented** is made-up data for learning. Do not search for, report, scan for, or attempt to exploit these example identifiers/products. The aim is to practise reading, transforming and presenting information safely.
-
-## F1. From a browser request to a page: one complete example
-
-### Overview
-When you type an address into a browser, the browser requests a resource. The server responds with a status, headers and a body. The page you see is not “inside” Flask: Flask sends HTML to the browser, then the browser reads CSS and JavaScript as separate requests.
-
-### Example request and response
-
-```text
-Browser request
-GET /health HTTP/1.1
-Host: 127.0.0.1:5000
-
-Server response
-HTTP/1.1 200 OK
-Content-Type: application/json
-X-Content-Type-Options: nosniff
-
-{"status":"ok"}
-```
-
-`GET` asks to read a resource. `/health` is the route. `200 OK` means the server completed the request successfully. `Content-Type: application/json` says the body is JSON. The body is a tiny object with one key, `status`.
-
-### Practise
-Start the app, then run these commands one at a time:
-
-```bash
-curl -i http://127.0.0.1:5000/health
-curl -i http://127.0.0.1:5000/not-a-page
-curl -I http://127.0.0.1:5000/
-```
-
-The first should be 200. The second should be 404, which means the route does not exist. The third uses `-I` to request headers only. Find `Content-Security-Policy`, `Referrer-Policy` and `X-Content-Type-Options`. A header is not a substitute for safe code, but it adds a browser-side layer of protection.
-
-**Checkpoint:** write only the three status numbers you observed and what each means.
-**If it fails:** first check that the app terminal is still running; then check the exact address and port; then use `ss -tulpn | grep 5000`.
-
-## F2. Read JSON slowly: object, list and nested value
-
-### Overview
-JSON uses braces `{}` for an object: named values such as `"id": "CVE-..."`. It uses square brackets `[]` for an ordered list. Indentation makes nesting easier to see but does not change the data. A comma separates items. JSON uses `true`, `false` and `null`, not Python's `True`, `False` and `None`.
-
-### Invented small response
-
-```json
-{
-  "totalResults": 2,
-  "vulnerabilities": [
-    {
-      "cve": {
-        "id": "CVE-2026-90001",
-        "published": "2026-03-01T09:30:00.000",
-        "descriptions": [
-          {"lang": "en", "value": "Invented archive service example."},
-          {"lang": "fr", "value": "Exemple inventé."}
-        ],
-        "metrics": {
-          "cvssMetricV31": [
-            {"cvssData": {"version": "3.1", "baseScore": 9.8, "baseSeverity": "CRITICAL"}}
-          ]
-        }
-      }
-    },
-    {
-      "cve": {
-        "id": "CVE-2026-90002",
-        "descriptions": [],
-        "metrics": {}
-      }
-    }
-  ]
-}
-```
-
-Follow the first score with this route: root object → `vulnerabilities` list → first item `[0]` → `cve` object → `metrics` object → `cvssMetricV31` list → first item `[0]` → `cvssData` object → `baseScore`. This explains why API code can look long even when the final displayed value is only `9.8`.
-
-### Practise with Python
-Create a scratch file named `read_json.py` in `~/dashboard-lab`:
-
-```python
-import json
-from pathlib import Path
-
-text = Path("tests/fixtures/nvd_sample.json").read_text()
-payload = json.loads(text)
-first = payload["vulnerabilities"][0]["cve"]
-print(first["id"])
-print(first["descriptions"][0]["value"])
-print(first["metrics"]["cvssMetricV31"][0]["cvssData"]["baseScore"])
-```
-
-This is a **provided learning example**. `import` makes a module available; `Path` represents a file path; `.read_text()` reads text; `json.loads()` changes JSON text into Python dictionaries/lists; square brackets select a known key or list position. Run `python read_json.py` from a folder where the relative fixture path is correct, or replace it with an absolute path.
-
-**Experiment 1:** change `[0]` to `[1]` for the second record and observe the error when it has no description. Restore it.
-**Experiment 2:** print `payload["totalResults"]`. Explain why this is easier: it is directly inside the root object.
-**Likely error:** `KeyError` means a dictionary key is missing; `IndexError` means a requested list position is absent. Robust application code uses `.get` and fallback values where external data may be incomplete.
-
-## F3. Normalisation worked example: complex input to small model
-
-### Overview
-Normalisation creates a dependable internal shape. It is like moving ingredients from differently shaped packets into labelled containers before cooking. Templates then use one predictable list of fields instead of needing to understand NVD's full format.
-
-### Input and output comparison
-
-|Upstream concept|Possible NVD location|Internal dashboard value|
-|---|---|---|
-|Identifier|`cve.id`|`id`|
-|English description|one item in `cve.descriptions`|`description`|
-|Base score|one CVSS metric version|`score`|
-|Severity|same metric|`severity`|
-|Weakness names|nested `weaknesses` descriptions|`weaknesses` list|
-|External link|built from identifier|`nvd_url`|
-
-For the invented first record, the normalised result looks like:
-
-```python
-{
-    "id": "CVE-2026-90001",
-    "description": "Invented archive service example.",
-    "published": "2026-03-01T09:30:00.000",
-    "last_modified": None,
-    "score": 9.8,
-    "severity": "CRITICAL",
-    "cvss_version": "3.1",
-    "weaknesses": [],
-    "nvd_url": "https://nvd.nist.gov/vuln/detail/CVE-2026-90001",
-    "known_exploited": False,
-    "kev_details": None,
-}
-```
-
-Notice `None`: Python uses it for an absent value. The template displays “Not supplied” or “Not scored” rather than inventing a value. An absent score is not zero.
-
-### Practise without editing the app
-
-```bash
-python - <<'PY'
-import json
-from pathlib import Path
-from services.normalisers import normalise_response
-
-source = json.loads(Path('tests/fixtures/nvd_sample.json').read_text())
-for cve in normalise_response(source):
-    print(cve['id'], '|', cve['severity'], '|', cve['score'])
-PY
-```
-
-Read the output. Then open `services/normalisers.py` alongside `tests/fixtures/nvd_sample.json`. Highlight each place the normaliser protects against missing values. Do not change it yet.
-
-**Checkpoint:** explain why a page template should receive the small model rather than the whole NVD response.
-
-## F4. Cache timeline worked example
-
-### Overview
-A cache has a timestamp. The **time to live** (TTL) is the maximum age considered fresh. The app must distinguish fresh cached data, live data and stale fallback data so users are not misled.
-
-Assume `CACHE_TTL_SECONDS=1800` (30 minutes):
-
-|Time|What happens|What the user should see|
-|---|---|---|
-|09:00|NVD succeeds; 20 normalised records are written|“Last refreshed 09:00”; normal dashboard|
-|09:10|Page reloads; cache is 10 minutes old|Same data quickly; no NVD request needed|
-|09:31|Cache is 31 minutes old; NVD succeeds|New cache written; normal dashboard|
-|10:02|Cache is 31 minutes old; NVD times out|Older records plus clear “Showing older cached data” warning|
-|10:05|No cache exists; NVD fails|Friendly unavailable-data message, not traceback|
-
-The cache file contains data and `fetched_at`; it must never contain the API key. Atomic replacement means the application writes a temporary completed JSON file and replaces the old one only when ready.
-
-### Practise
-Run the test that demonstrates stale fallback:
-
-```bash
-pytest -q tests/test_cache.py -vv
-```
-
-`-vv` gives more test names/detail. Read the test before and after running it. Find the mock that deliberately makes NVD fail. This is safer than turning off a real network connection.
-
-**Reflection:** Why is “always show the last result with no warning” misleading?
-**Answer:** users could make a time-sensitive decision believing old data is current.
-
-## F5. Safe text rendering worked example
-
-### Overview
-An API description is data from outside the application. It may contain characters with special meaning in HTML. Treat it as text. The dashboard's JavaScript creates a paragraph and sets `.textContent`; it does not feed untrusted data into `.innerHTML`.
-
-### Invented description
-
-```text
-Invented example: text containing <strong>words</strong> and & symbols.
-```
-
-When displayed safely with `textContent`, the browser shows the angle brackets as characters. It does **not** make the word bold. This is desirable because the application should decide its own HTML structure.
-
-### Safe and unsafe comparison
-
-```javascript
-// Safe: the browser treats the value as text.
-paragraph.textContent = description;
-
-// Do not use this with external API data: it asks the browser to parse HTML.
-paragraph.innerHTML = description;
-```
-
-Do not test dangerous browser payloads. The harmless invented string above is enough to observe the difference. In Jinja templates, `{{ cve.description }}` is escaped by default. Do not add `|safe` to external content.
-
-### Practise
-Use browser DevTools Console on a local page:
-
-```javascript
-const example = document.createElement('p');
-example.textContent = 'Words with <strong>angle brackets</strong>.';
-document.body.append(example);
-```
-
-Observe the page. Remove the temporary element by refreshing. This is a local visual experiment, not a code change.
-
-## F6. Filter logic worked example
-
-### Overview
-A filter asks whether each record meets conditions. All selected conditions must match. Sorting changes order; it does not remove records. The dashboard filters in the browser after receiving normalised data.
-
-Use this invented list:
-
-|ID|Severity|Score|Known exploited|Published|
-|---|---:|---:|---|---|
-|CVE-2026-90001|CRITICAL|9.8|No|2026-03-01|
-|CVE-2026-90002|HIGH|8.1|Yes|2026-03-02|
-|CVE-2026-90003|MEDIUM|5.4|No|2026-03-03|
-|CVE-2026-90004|HIGH|not scored|No|2026-03-04|
-
-Try these predictions before using the UI:
-
-1. Severity HIGH → records `90002` and `90004`.
-2. Minimum score 8.0 → `90001` and `90002`; the not-scored record is not included.
-3. Known exploited only → `90002`.
-4. HIGH plus known exploited → only `90002`.
-5. HIGH plus minimum score 9.0 → no matches; the empty-state message should explain what happened.
-
-Open `/cves` and repeat with real cached fixture data. Use Clear filters between attempts. If a result surprises you, read the values shown on each card before assuming the code is wrong.
-
-## F7. Testing worked example: Arrange, Act, Assert
-
-### Overview
-A test says what the program should do in a particular situation. It is a safety net, not proof that every possible problem is absent. Use small, repeatable test data.
-
-```python
-def test_unscored_record_has_safe_fallback():
-    # Arrange: make a tiny upstream record without metrics.
-    upstream = {"cve": {"id": "CVE-2026-90004", "descriptions": [], "metrics": {}}}
-
-    # Act: convert it using the normaliser.
-    result = normalise_cve(upstream)
-
-    # Assert: check the two important promises.
-    assert result["score"] is None
-    assert result["description"] == "No English description supplied."
-```
-
-This example uses invented data. `def` starts a function. Comments explain test stages. `assert` fails the test when its condition is false. The existing test suite follows the same idea using fixtures.
-
-### Practise
-1. Read `tests/test_normalisers.py`.
-2. Identify its Arrange, Act and Assert statements with comments in your notebook or evidence record.
-3. Run one file: `pytest -q tests/test_normalisers.py`.
-4. Change one expected value in a temporary local copy, run the test, read the failure, then undo the change with `git restore tests/test_normalisers.py`.
-
-This is a controlled failure. It teaches that a red test contains useful information: expected value, actual value and line number.
-
-## F8. Git worked example: a small, recoverable change
-
-### Overview
-Commit after one understandable improvement. A commit message explains intent, not every keystroke. Git lets you inspect before recording and recover after a mistake.
-
-```bash
-git status
-git diff
-git add templates/index.html
-git commit -m "Add dashboard audience statement"
-git log --oneline -3
-```
-
-Imagine `git diff` shows only your one sentence. `git add templates/index.html` stages just that file; `git commit` makes a snapshot; `git log --oneline -3` shows recent snapshots. If `git status` unexpectedly lists `.env`, stop: it must not be staged.
-
-### Practise recovery
-Make a harmless visible text change, commit it, then decide it was not wanted:
-
-```bash
-git log --oneline -1
-git revert HEAD
-git log --oneline -2
-```
-
-`git revert` creates a new commit that reverses the previous commit. It is safer for shared history than changing old commits. Open the page to confirm the text returned to its earlier state.
-
-## F9. Deployment diagnosis worked example
-
-### Scenario
-You run `systemctl status vulnerability-dashboard --no-pager` and see `Active: failed`. The public Nginx page displays `502 Bad Gateway`.
-
-### Reasoning route
-1. A 502 means Nginx could not get a suitable response from the upstream application. It does not automatically mean Nginx is broken.
-2. On the server, run `curl -i http://127.0.0.1:8000/health`. If it cannot connect, investigate Gunicorn/systemd first.
-3. Run `journalctl -u vulnerability-dashboard -n 50 --no-pager`. Read the first relevant error line.
-4. Suppose it says the Python executable does not exist. Compare `ExecStart` in `/etc/systemd/system/vulnerability-dashboard.service` with `ls -l /srv/vulnerability-dashboard/.venv/bin/gunicorn`.
-5. Correct only the path, run `sudo systemctl daemon-reload`, then `sudo systemctl restart vulnerability-dashboard`.
-6. Re-test local health, then `sudo nginx -t`, then public page. Record the evidence.
-
-Do not restart every service repeatedly without reading logs. The order above identifies which layer failed and proves the repair.
