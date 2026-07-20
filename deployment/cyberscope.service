@@ -1,0 +1,14 @@
+[Unit]
+Description=CyberScope Flask dashboard
+After=network.target
+[Service]
+User=cyberscope
+Group=www-data
+WorkingDirectory=/srv/cyberscope-dashboard
+EnvironmentFile=/etc/cyberscope/cyberscope.env
+ExecStart=/srv/cyberscope-dashboard/.venv/bin/gunicorn --workers 2 --bind 127.0.0.1:8000 'app:create_app()'
+Restart=on-failure
+NoNewPrivileges=true
+PrivateTmp=true
+[Install]
+WantedBy=multi-user.target
