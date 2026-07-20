@@ -1,4 +1,4 @@
-"""Refresh cache once (useful for a mentor cron/systemd-timer extension)."""
+"""Refresh cache once (useful for a scheduled/systemd-timer extension)."""
 
 from app import create_app, get_data
 

@@ -1,8 +1,8 @@
-# CyberScope student workbook
+# Vulnerability Dashboard student workbook
 
 **Audience:** Digital T Level students who are new to servers, Python and web development.
 **Project outcome:** a small, accessible security dashboard running on an Ubuntu server.
-**How long:** a guided week of lessons plus optional extensions. Work at a pace agreed with your mentor; do not rush server-security steps.
+**How long:** a guided week of lessons plus optional extensions. Plan the lessons across at least five study sessions; do not rush server-security steps.
 
 > **Important safety rule:** never paste an API key, private SSH key, password or a server IP that is not public into chat, screenshots, Git, or an AI tool. Never run a command on the cloud server unless you can say what it will do and how to check it worked.
 
@@ -11,7 +11,7 @@
 ## 0. Start here: the map of the project
 
 ### What you are building
-CyberScope is a website which shows two kinds of security information:
+Vulnerability Dashboard is a website which shows two kinds of security information:
 
 * **OWASP Top 10** — a locally stored, student-friendly guide to common web application security risks.
 * **CVE records** — recent public vulnerability records from NIST's NVD API, reduced to a short, safe-to-display format.
@@ -56,7 +56,7 @@ Date and initials:
 
 ### Learning routine for every lesson
 1. Read **Why this matters** first.
-2. Watch or follow the **mentor demonstration**.
+2. Read the worked example before starting the task.
 3. Complete each numbered task. Type commands; do not blindly paste a whole lesson.
 4. Stop at the **checkpoint** and collect evidence.
 5. Answer the **reflection** in your own words.
@@ -76,8 +76,8 @@ By the end, you can explain CVE, CWE, CVSS, OWASP and CISA KEV in simple languag
 ## Concept overview
 A **CVE** is an identifier such as `CVE-2026-0001` for a publicly reported vulnerability. A **CWE** names a class of weakness, for example a type of input-handling mistake. **CVSS** gives a standard technical score, normally 0–10. It is useful, but it does not know your organisation's systems, data or controls. **OWASP** publishes application-security education. **CISA KEV** is a US catalogue of vulnerabilities known to be exploited; absence from the catalogue is *not* proof that no exploitation exists.
 
-## Mentor demonstration
-Your mentor should compare two fictional records: one critical record for software the organisation does not use and one high record in a public, used system with KEV evidence. Notice why “highest score first” is an incomplete rule.
+## Worked example
+Compare two fictional records: one critical record for software an organisation does not use and one high record in a public, used system with KEV evidence. The second may be investigated first. Notice why “highest score first” is an incomplete rule.
 
 ## Tasks
 1. Write an audience statement: “This dashboard helps ___ decide ___ because ___.”
@@ -89,7 +89,7 @@ Your mentor should compare two fictional records: one critical record for softwa
 Show the sketch and decision record. Explain: “Why might a high CVSS score not be first priority?”
 **Common mistake:** saying KEV means every organisation is affected. It means there is exploitation evidence, not that your systems are vulnerable.
 
-**Stretch:** write a 50-word explanation of CyberScope for a school governor with no technical background.
+**Stretch:** write a 50-word explanation of Vulnerability Dashboard for a school governor with no technical background.
 
 ---
 
@@ -102,21 +102,21 @@ A cloud instance is a remote virtual computer rented from a provider. You contro
 ## New words
 * **SSH (Secure Shell):** encrypted remote terminal connection.
 * **Key pair:** a private key kept secret on your computer and a public key installed on the server.
-* **Host key:** the server's identity fingerprint. Check it with the provider/mentor the first time.
+* **Host key:** the server's identity fingerprint. Check it with the cloud-provider dashboard or trusted course record the first time.
 * **user:** an account with its own files and permissions.
 * **sudo:** “run this command with administrator privileges”. It is powerful, not a shortcut.
 
 ## First connection
-Your mentor gives you a hostname or public IP, username and private-key file. In your own terminal, move to the folder containing the key. On Windows PowerShell, `cd` works too; on macOS/Linux use Terminal.
+Your cloud-provider dashboard or course setup record gives you a hostname or public IP, username and private-key file. In your own terminal, move to the folder containing the key. On Windows PowerShell, `cd` works too; on macOS/Linux use Terminal.
 
 ```bash
 cd ~/Downloads
-ssh -i cyberscope-class.pem ubuntu@203.0.113.10
+ssh -i vulnerability-dashboard-class.pem ubuntu@203.0.113.10
 ```
 
-**What each part means:** `cd` changes folder; `-i` selects the identity/private-key file; `ubuntu@...` means “log in as ubuntu on this server”. The address above is documentation-only; use the address supplied by your mentor.
+**What each part means:** `cd` changes folder; `-i` selects the identity/private-key file; `ubuntu@...` means “log in as ubuntu on this server”. The address above is documentation-only; use the address in your own setup record.
 
-If asked whether to trust an unknown host key, **stop and compare the fingerprint with your mentor/provider**. Do not accept a different fingerprint without investigation.
+If asked whether to trust an unknown host key, **stop and compare the fingerprint with the cloud-provider dashboard or trusted setup record**. Do not accept a different fingerprint without investigation.
 
 ### Commands you will practise
 
@@ -143,12 +143,12 @@ If asked whether to trust an unknown host key, **stop and compare the fingerprin
 
 ## Guided navigation challenge
 1. Run `pwd`. Copy the output into evidence.
-2. Run `mkdir -p ~/cyberscope-practice/notes`. `-p` creates needed parent folders too.
-3. Run `cd ~/cyberscope-practice/notes`, then `pwd`. Explain why this works from any starting folder: `~` means your home folder.
+2. Run `mkdir -p ~/vulnerability-dashboard-practice/notes`. `-p` creates needed parent folders too.
+3. Run `cd ~/vulnerability-dashboard-practice/notes`, then `pwd`. Explain why this works from any starting folder: `~` means your home folder.
 4. Run `nano commands.txt`, type `I can navigate Linux.`, save and exit.
 5. Run `cat commands.txt`; then copy and rename it: `cp commands.txt copy.txt` and `mv copy.txt moved.txt`.
 6. Run `ls -la`, then `cd ..`, then `ls -la notes`.
-7. Clean up only your practice folder: `rm -r ~/cyberscope-practice`. `rm -r` permanently deletes a folder and its contents. Run `pwd` first and type the full path; never use it with a path you do not understand.
+7. Clean up only your practice folder: `rm -r ~/vulnerability-dashboard-practice`. `rm -r` permanently deletes a folder and its contents. Run `pwd` first and type the full path; never use it with a path you do not understand.
 
 ## Checkpoint
 Run `whoami`, `id`, `ss -tulpn`, and `systemctl status ssh --no-pager`. A pager lets long output scroll; `--no-pager` prints it once. Explain which command tells you your current folder and which command tells you your identity.
@@ -169,19 +169,19 @@ A public server receives internet traffic. Least privilege means each user and s
    sudo apt update
    sudo apt upgrade
    ```
-   `apt update` downloads a list of available package versions. `apt upgrade` installs updates. Verify that it finishes without errors. Undoing package updates is not usually simple; take a provider snapshot first if your mentor permits it.
+   `apt update` downloads a list of available package versions. `apt upgrade` installs updates. Verify that it finishes without errors. Undoing package updates is not usually simple; take a provider snapshot first if your cloud-provider account provides it.
 2. **Create the application account.**
    ```bash
-   sudo adduser --system --group --home /srv/cyberscope cyberscope
-   id cyberscope
+   sudo adduser --system --group --home /srv/vulnerability-dashboard vulnerability-dashboard
+   id vulnerability-dashboard
    ```
-   This makes a non-login system user and group for the service. Verify its UID/group using `id`. If created in error before deployment, your mentor can remove it with `sudo deluser --remove-home cyberscope`.
+   This makes a non-login system user and group for the service. Verify its UID/group using `id`. If created in error before deployment, you can remove it with `sudo deluser --remove-home vulnerability-dashboard`.
 3. **Review SSH before changing it.**
    ```bash
    sudo less /etc/ssh/sshd_config
    sudo sshd -t
    ```
-   Look for `PasswordAuthentication` and `PermitRootLogin`. `sshd -t` checks syntax without applying changes. **Do not close the current session.** After a mentor-reviewed change, open a second SSH terminal and confirm key login works before reloading SSH: `sudo systemctl reload ssh`.
+   Look for `PasswordAuthentication` and `PermitRootLogin`. `sshd -t` checks syntax without applying changes. **Do not close the current session.** After checking the configuration and opening a second SSH terminal, open a second SSH terminal and confirm key login works before reloading SSH: `sudo systemctl reload ssh`.
 4. **Set the firewall carefully.**
    ```bash
    sudo ufw allow OpenSSH
@@ -189,7 +189,7 @@ A public server receives internet traffic. Least privilege means each user and s
    sudo ufw enable
    sudo ufw status verbose
    ```
-   UFW is Ubuntu's firewall tool. First allowing `OpenSSH` prevents locking yourself out. Verify rules and status. Undo a specific accidental rule with `sudo ufw delete NUMBER`, using the number shown; emergency undo is `sudo ufw disable`, but tell your mentor.
+   UFW is Ubuntu's firewall tool. First allowing `OpenSSH` prevents locking yourself out. Verify rules and status. Undo a specific accidental rule with `sudo ufw delete NUMBER`, using the number shown; emergency undo is `sudo ufw disable`, and record the change.
 5. **Inspect ports.** Run `sudo ss -tulpn`. At this stage, only services you expect should listen. Later, allow Nginx HTTP/HTTPS rather than opening Gunicorn's internal port.
 
 ## Reflection
@@ -216,9 +216,9 @@ curl --version
 ## Get the project and create the environment
 ```bash
 cd /srv
-sudo git clone YOUR_CLASS_REPOSITORY cyberscope-dashboard
-sudo chown -R "$USER":"$USER" /srv/cyberscope-dashboard
-cd /srv/cyberscope-dashboard
+sudo git clone YOUR_REPOSITORY_URL vulnerability-dashboard
+sudo chown -R "$USER":"$USER" /srv/vulnerability-dashboard
+cd /srv/vulnerability-dashboard
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
@@ -365,7 +365,7 @@ A cache is a saved successful result. It improves speed and respects rate limits
    ```
    This is provided classroom setup code. Read it: it loads JSON, normalises it, then writes cache data.
 3. Run the app and visit `/`, `/cves`, `/api/cves`. Confirm fixture data appears.
-4. Set `CACHE_TTL_SECONDS=1` in your shell (`export CACHE_TTL_SECONDS=1`), restart the app, wait two seconds and disconnect/disable external access only if your mentor approves. Observe the stale warning when upstream data cannot refresh. Restore the default by closing that terminal or `unset CACHE_TTL_SECONDS`.
+4. Set `CACHE_TTL_SECONDS=1` in your shell (`export CACHE_TTL_SECONDS=1`), restart the app, wait two seconds and disconnect/disable external access only on a non-production/local test environment. Observe the stale warning when upstream data cannot refresh. Restore the default by closing that terminal or `unset CACHE_TTL_SECONDS`.
 5. Explain why the CISA client catches failures and still returns CVEs.
 
 ---
@@ -422,9 +422,9 @@ The first checks response headers. The second checks accidental files. The third
 ---
 
 # Lesson 11 — Deploy with Gunicorn, systemd and Nginx
-**Effort:** substantial. **Suggested Git checkpoint:** `deploy CyberScope securely`; **release tag:** `v1.0.0`.
+**Effort:** substantial. **Suggested Git checkpoint:** `deploy vulnerability dashboard securely`; **release tag:** `v1.0.0`.
 
-Follow `deployment/DEPLOYMENT.md` in order with your mentor. This workbook explains the why; that guide gives exact verified commands and rollback. Do not skip the second SSH connection/firewall checks.
+Follow `deployment/DEPLOYMENT.md` in order. It is written so you can verify each step yourself. This workbook explains the why; that guide gives exact verified commands and rollback. Do not skip the second SSH connection/firewall checks.
 
 ## Production terms
 * **Gunicorn:** production server that runs Flask worker processes; bind it to `127.0.0.1:8000`, not public internet.
@@ -434,15 +434,15 @@ Follow `deployment/DEPLOYMENT.md` in order with your mentor. This workbook expla
 * **HTTPS:** encryption between browser and Nginx. A public trusted certificate needs a valid domain pointing at the server; a bare private IP normally cannot receive one.
 
 ## Deployment checklist
-1. Create the `cyberscope` non-root service user and `/srv/cyberscope-dashboard` directory with correct ownership.
-2. Clone the repository, create `/srv/cyberscope-dashboard/.venv`, install pinned requirements.
-3. Put secrets only in `/etc/cyberscope/cyberscope.env`, owned root and readable by the service group; never in Git.
+1. Create the `vulnerability-dashboard` non-root service user and `/srv/vulnerability-dashboard` directory with correct ownership.
+2. Clone the repository, create `/srv/vulnerability-dashboard/.venv`, install pinned requirements.
+3. Put secrets only in `/etc/vulnerability-dashboard/vulnerability-dashboard.env`, owned root and readable by the service group; never in Git.
 4. Test Gunicorn manually from a second terminal with `curl http://127.0.0.1:8000/health`.
-5. Copy the provided systemd service, run `daemon-reload`, enable/start, inspect `systemctl status` and `journalctl -u cyberscope`.
+5. Copy the provided systemd service, run `daemon-reload`, enable/start, inspect `systemctl status` and `journalctl -u vulnerability-dashboard`.
 6. Copy Nginx configuration, set the real domain, run `sudo nginx -t` **before** reload, then reload and test public routes/static CSS.
 7. Apply UFW Nginx rule after confirming SSH safety. Check `ss -tulpn`.
 8. If a domain exists, obtain/test Certbot HTTPS; otherwise document HTTP/private-classroom limitation.
-9. Reboot only after mentor approval and prove the service returns after reboot.
+9. Reboot only after recording a working rollback path and prove the service returns after reboot.
 10. Practise update/rollback: record commit, update in a branch, test, restart, health-check; return to recorded commit if it fails.
 
 ---
@@ -506,3 +506,180 @@ AI may explain errors, unfamiliar syntax, test ideas, a small function, fixtures
 |Date|Question asked|Tool|Useful response|What I verified|What I changed|What I learned|
 |---|---|---|---|---|---|---|
 | | | | | | | |
+
+---
+
+# Appendix C — Foundation labs: learn the tools before you need them
+
+These short labs are deliberately separate from the main application. They give you a safe place to practise. Complete them in your home folder, not in `/etc`, `/usr` or the project folder. Every lab starts with a concept, then an example, then a small task. If something goes wrong, use `pwd` and `ls -la` before doing anything else.
+
+## Lab C1 — Paths, folders and files
+
+### Overview
+A computer stores files inside folders (also called directories). A **path** is the route to a file. An **absolute path** starts at `/`, the top of the Linux filesystem: `/home/student/notes.txt`. A **relative path** starts from where you are now: `notes.txt`. `~` is a shortcut for your home folder. The shell is a program which reads commands one line at a time.
+
+### Try it
+```bash
+pwd
+mkdir -p ~/dashboard-lab/week1
+cd ~/dashboard-lab/week1
+pwd
+ls -la
+touch first-note.txt
+ls -la
+```
+
+`touch` creates an empty file if it does not exist. It is also used to update a file timestamp. `mkdir -p` makes all missing folders in a path and does not complain if they already exist. In the output of `ls -la`, the first character `d` means directory and `-` means ordinary file.
+
+### Guided challenge
+1. Create `~/dashboard-lab/week1/assets`.
+2. Enter it using `cd` and prove your location with `pwd`.
+3. Create `colours.txt` with `touch`.
+4. Go back one folder with `cd ..`.
+5. List the contents of `assets` without entering it: `ls -la assets`.
+6. Return home with `cd` on its own. Why does this work?
+
+**Checkpoint:** you can explain absolute, relative and home-folder paths.
+**Try a mistake safely:** type `cd missing-folder`. Read the error; then run `ls` to see why it failed. Do not create a random folder just to silence an error.
+
+## Lab C2 — Read and edit text safely
+
+### Overview
+Configuration and code are text files. A command-line editor does not protect you from mistakes, so make one change, save, inspect, then continue. `nano` is included because its shortcuts appear at the bottom of the screen.
+
+### Try it
+```bash
+cd ~/dashboard-lab/week1
+nano first-note.txt
+```
+Type three short lines. Save with `Ctrl+O`, press Enter to confirm the name, then exit with `Ctrl+X`. Now run:
+
+```bash
+cat first-note.txt
+less first-note.txt
+```
+
+`cat` prints a short file at once. `less` is better for long files: press Space to move down, `b` up, `/word` to search, and `q` to quit. Never use `cat` on a secret file in a shared screen recording.
+
+### Guided challenge
+1. Add a fourth line with `nano`.
+2. Search the file with `grep -n 'word-you-used' first-note.txt`. `-n` adds line numbers.
+3. Copy it: `cp first-note.txt backup-note.txt`.
+4. Compare names with `ls -l`.
+5. Rename the backup: `mv backup-note.txt checked-note.txt`.
+6. Print only the final two lines: `tail -n 2 first-note.txt`.
+
+**Checkpoint:** explain the difference between copying and moving.
+**Common error:** saving a file in the wrong folder. Use `pwd` before `nano`, or use an absolute path.
+
+## Lab C3 — Permissions in plain English
+
+### Overview
+Linux permissions decide who may read (`r`), write (`w`) or enter/execute (`x`) a file. `ls -l` shows three groups: owner, group, everyone else. A private key should not be readable by everyone. Do not solve every problem with `sudo` or `chmod 777`; that hides the question “who should really have access?”
+
+```bash
+cd ~/dashboard-lab/week1
+ls -l first-note.txt
+chmod 600 first-note.txt
+ls -l first-note.txt
+```
+`600` means owner can read/write; group and others have no permissions. This is appropriate for a private text note, not necessarily a shared web asset. Restore a normal readable example with `chmod 644 first-note.txt` (owner read/write; others read).
+
+**Checkpoint:** explain why a service account needs read permission to application files but should not own system configuration.
+**Safety rule:** only change permissions on files you own in this lab. Record the old mode before changing a production file.
+
+## Lab C4 — Processes, ports and stopping programs
+
+### Overview
+A **process** is a running program. A **port** is a numbered doorway used for network traffic. A browser normally uses 80 (HTTP) or 443 (HTTPS); the local Flask example uses 5000. A process bound to `127.0.0.1` accepts connections only from the same server.
+
+In one terminal, run `python app.py`. In a second terminal:
+
+```bash
+ss -tulpn | grep 5000
+curl -i http://127.0.0.1:5000/health
+ps aux | grep '[p]ython app.py'
+```
+
+The square brackets in the last command stop `grep` finding itself. Return to the first terminal and press `Ctrl+C`; this sends an interrupt to the program you started. Run the port command again. It should no longer show port 5000.
+
+**Checkpoint:** explain why Gunicorn later binds to `127.0.0.1:8000` and Nginx, rather than Gunicorn, is public.
+
+## Lab C5 — Reading command help
+
+### Overview
+Good developers do not memorise every option. They find help, read the relevant part and test a small example. On Ubuntu, `man` opens a manual page, `--help` gives short help, and `apropos` searches manual titles.
+
+```bash
+mkdir --help | less
+man ls
+apropos 'copy files'
+```
+Quit a manual with `q`. Look up `cp` and identify what recursive copying means before using `cp -r`. Do not run options merely because an example contains them.
+
+---
+
+# Appendix D — Design studio: choose a name, type and colour system
+
+## Overview
+The reference implementation deliberately starts as **My Security Dashboard**. It is not your final product name. Naming and visual design should communicate purpose, not disguise security information. Choose your identity after the basic pages work so styling does not distract from learning the structure.
+
+## Step 1: create a small brand brief
+Pick one audience: a small IT team, an operations manager, a school technical team, or an informed learner. Pick three adjectives, such as “clear, calm, evidence-led”. Write only these three short answers in your decision record:
+
+* Who will use the dashboard?
+* What should they understand within ten seconds?
+* What should they do next?
+
+## Step 2: find a suitable font
+A dashboard should use one easy-to-read body font and, at most, one heading font. Good sources are: your operating system's system font stack (fastest and no download), [Google Fonts](https://fonts.google.com/) (look at the licence and load only needed weights), [Fontshare](https://www.fontshare.com/) (check its licence), or a permitted organisation brand font. Search for a sans-serif family with regular and bold weights. Examples to compare: Inter, Atkinson Hyperlegible, Source Sans 3, Noto Sans and IBM Plex Sans.
+
+Test the same sentence at 16px body size and 28–36px heading size. Reject a choice if the lowercase `l`, uppercase `I` and number `1` are hard to tell apart. Keep the core system font unless you can explain performance, licensing and accessibility implications of a web font.
+
+## Step 3: choose colours with a job
+Use three roles rather than random colours: dark neutral for text, light neutral for background/surfaces, and an accent for links/actions. Severity colours are extra indicators, never the only indicator. Sources for starting palettes include [Adobe Color](https://color.adobe.com/), [Coolors](https://coolors.co/), and the accessible examples in the [WebAIM Contrast Checker](https://webaim.org/resources/contrastchecker/). These tools suggest colours; you still test the final text/background pairing.
+
+1. Choose background, text and accent candidates.
+2. Test normal text contrast against its exact background; aim for WCAG AA (generally 4.5:1 for ordinary text).
+3. Open the existing page and use DevTools to inspect the CSS custom properties at the top of `styles.css`.
+4. Change only `--blue` in a branch, refresh, test links/focus/bars, then decide whether to keep it.
+
+## Step 4: apply your name safely
+In `templates/base.html`, find the page title and brand link. In `templates/index.html`, find the `<h1>`. Change the displayed text in both places to your chosen name. Do not rename Python modules, service users, folders or deployment files merely for branding: a public label and an operating-system identifier are different things.
+
+**Checkpoint:** keyboard users can still see which link/control has focus; page text remains readable; the name explains the dashboard purpose.
+**Reflection:** why might a decorative font be unsuitable for CVE identifiers?
+
+---
+
+# Appendix E — Worked web-page reading exercise
+
+## Overview
+HTML gives information structure. CSS gives presentation. JavaScript responds to actions. Reading a small page from the outside in is a useful way to understand it.
+
+### HTML example
+```html
+<label for="search">Search CVEs</label>
+<input id="search" type="search" aria-describedby="search-help">
+<p id="search-help">Search an identifier or description.</p>
+```
+`label` names the control; `for` connects it to the input `id`; `type="search"` tells the browser the purpose; `aria-describedby` connects helpful text. The student task is to identify a comparable label in `templates/cves.html`, then test it with keyboard focus.
+
+### CSS example
+```css
+.card {
+  background: var(--card);
+  padding: 1rem;
+  border-radius: .5rem;
+}
+```
+A **selector** (`.card`) chooses elements with that class. A **declaration** has a property and value. `var(--card)` reuses a named colour. `1rem` is relative to base text size. Experiment in DevTools first: change `padding` from `1rem` to `2rem`; observe the result; then refresh to discard the experiment.
+
+### JavaScript example
+```javascript
+const button = document.querySelector('#menu');
+button.addEventListener('click', () => {
+  button.setAttribute('aria-expanded', 'true');
+});
+```
+`const` creates a named value; `querySelector` finds an element; `addEventListener` waits for a click; the arrow function runs after the click. The real code toggles rather than permanently sets the state. Find it in `dashboard.js` and test the Menu using keyboard.

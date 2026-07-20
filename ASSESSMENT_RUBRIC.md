@@ -1,4 +1,4 @@
-# CyberScope assessment rubric
+# Vulnerability Dashboard assessment rubric
 
 Assess evidence from the student's commits, decision record, terminal/log screenshots, tests, completed self-review, documentation and individual demonstration. A learner can be stronger in one row than another. “Secure” is the expected complete core standard; “Advanced” adds justified, tested independence.
 

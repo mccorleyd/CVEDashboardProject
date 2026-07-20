@@ -1,7 +1,7 @@
 {
   "edition": "2021 (verified local teaching dataset; maintainer must check official OWASP project before delivery)",
   "source_checked": "2026-07-20",
-  "note": "Category titles are summarised from OWASP. The short explanations, examples, impacts and prevention notes are student-friendly teaching text. Update this local file after an official new release; never scrape at runtime. Network access to official sources was unavailable in the build environment, so mentors must complete the documented release check before classroom use.",
+  "note": "Category titles are summarised from OWASP. The short explanations, examples, impacts and prevention notes are student-friendly teaching text. Update this local file after an official new release; never scrape at runtime. Network access to official sources was unavailable in the build environment, so users must complete the documented release check before classroom use.",
   "categories": [
     {
       "id": "A01:2021",

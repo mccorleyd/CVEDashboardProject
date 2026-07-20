@@ -1,4 +1,4 @@
-# CyberScope troubleshooting workbook
+# Vulnerability Dashboard troubleshooting workbook
 
 ## A method before a fix
 Write down: time, URL/command, expected result, actual result, exact error/status, current folder (`pwd`), active Python (`which python`), and what changed last (`git diff`, `git log -1`). Make one change at a time. A traceback is useful to developers; do not show one to visitors.
@@ -12,8 +12,8 @@ Write down: time, URL/command, expected result, actual result, exact error/statu
 |Which Python?|`which python`, `python --version`|Expect `.venv/bin/python` in development|
 |Is a process listening?|`sudo ss -tulpn`|Find port/process; do not kill unknown process|
 |Does Flask answer locally?|`curl -i http://127.0.0.1:8000/health`|200 plus JSON after Gunicorn|
-|Does service run?|`systemctl status cyberscope --no-pager`|Read active/exit code|
-|Why did it fail?|`journalctl -u cyberscope -n 100 --no-pager`|Read newest relevant error first|
+|Does service run?|`systemctl status vulnerability-dashboard --no-pager`|Read active/exit code|
+|Why did it fail?|`journalctl -u vulnerability-dashboard -n 100 --no-pager`|Read newest relevant error first|
 |Does Nginx config parse?|`sudo nginx -t`|Must pass before reload|
 |What did Nginx receive?|`sudo tail -n 50 /var/log/nginx/access.log`|Status/URL/client|
 |What did Nginx reject?|`sudo tail -n 50 /var/log/nginx/error.log`|Proxy/static/config clues|
@@ -32,13 +32,13 @@ Write down: time, URL/command, expected result, actual result, exact error/statu
 ### “Nginx loads but the application does not”
 1. Run `sudo nginx -t`; only reload after success.
 2. Run `curl -i http://127.0.0.1:8000/health` on the server. If this fails, diagnose Gunicorn first.
-3. Check `systemctl status cyberscope` and `journalctl -u cyberscope -n 100`.
+3. Check `systemctl status vulnerability-dashboard` and `journalctl -u vulnerability-dashboard -n 100`.
 4. Compare Nginx `proxy_pass` port to Gunicorn `--bind`. Both must be `127.0.0.1:8000` in the provided files.
 5. Check `WorkingDirectory`, service user and readable files.
 
 ### “Gunicorn works manually but systemd fails”
 1. Manual shell may have an activated venv/environment; systemd does not.
-2. Read `journalctl -u cyberscope`, not just `systemctl status`.
+2. Read `journalctl -u vulnerability-dashboard`, not just `systemctl status`.
 3. Check absolute `ExecStart` path, `WorkingDirectory`, `User`, `Group`, `EnvironmentFile` and its permissions.
 4. After unit edits: `sudo systemctl daemon-reload`, then restart/status.
 
@@ -58,7 +58,7 @@ Write down: time, URL/command, expected result, actual result, exact error/statu
 1. Identify current user (`whoami`) and file owner/mode (`ls -l`).
 2. Walk the path using `namei -l PATH`.
 3. Decide the minimum owner/group/read/execute access needed. Never use `chmod 777` as a fix.
-4. For service files, confirm `cyberscope` can read app/cache and group can read environment file as configured.
+4. For service files, confirm `vulnerability-dashboard` can read app/cache and group can read environment file as configured.
 
 ## Manual test plan
 

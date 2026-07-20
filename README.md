@@ -1,9 +1,9 @@
-# CyberScope: OWASP and CVE Security Dashboard
+# Your Vulnerability Dashboard
 
-CyberScope is a complete UK Digital T Level classroom project: a readable Flask reference implementation plus a week-long guided workbook for students with minimal technical experience. Students learn to orient themselves on Ubuntu, use Git, build pages, understand JSON/APIs, normalise/cache vulnerability data, test failure paths, review security and deploy with Gunicorn, systemd and Nginx.
+Vulnerability Dashboard is a complete UK Digital T Level classroom project: a readable Flask reference implementation plus a week-long guided workbook for students with minimal technical experience. Students learn to orient themselves on Ubuntu, use Git, build pages, understand JSON/APIs, normalise/cache vulnerability data, test failure paths, review security and deploy with Gunicorn, systemd and Nginx.
 
 ## Start with the workbook
-Read [STUDENT_GUIDE.md](STUDENT_GUIDE.md) from Lesson 1 onwards. It contains lessons, command reference, guided work, controlled experiments, errors, checkpoints, 12 challenge cards, responsible-AI guidance, a team option, final demo and 20 assessed extensions. Mentors should read [MENTOR_GUIDE.md](MENTOR_GUIDE.md) first.
+Read [STUDENT_GUIDE.md](STUDENT_GUIDE.md) from Lesson 1 onwards. It contains lessons, command reference, guided work, controlled experiments, errors, checkpoints, 12 challenge cards, responsible-AI guidance, a team option, final demo and 20 assessed extensions. [TEACHING_NOTES.md](TEACHING_NOTES.md) is optional delivery support; students can complete the workbook independently.
 
 ## Architecture and routes
 
@@ -27,7 +27,7 @@ Open `http://127.0.0.1:5000`. The Flask development server is local-learning onl
 ## Configuration and sources
 `NVD_API_KEY` is optional. `CACHE_TTL_SECONDS` defaults to 1800 seconds. `ENABLE_CISA_KEV=true` controls enrichment. No real `.env` file or key belongs in Git. Sources: [NVD API 2.0](https://nvd.nist.gov/developers/vulnerabilities), [CISA KEV JSON](https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json), and [OWASP Top 10](https://owasp.org/www-project-top-ten/). “This product uses the NVD API but is not endorsed or certified by the NVD.”
 
-The source-check record is 2026-07-20. The build environment could not connect to official sites, so the included local OWASP teaching dataset carries a clear maintenance warning. A mentor must verify the current released OWASP edition and current official API URLs before classroom delivery, update/review the data if necessary, validate JSON, test `/owasp`, and commit the update.
+The source-check record is 2026-07-20. The build environment could not connect to official sites, so the included local OWASP teaching dataset carries a clear maintenance warning. Before use, verify the current released OWASP edition and current official API URLs before classroom delivery, update/review the data if necessary, validate JSON, test `/owasp`, and commit the update.
 
 ## Security, quality and known limits
 Security controls cover environment variables, non-root service operation, localhost Gunicorn, Nginx request limits, UFW/SSH guidance, validation, output encoding, timeout/error handling and security headers. Complete [SECURITY_REVIEW.md](SECURITY_REVIEW.md) and use [TROUBLESHOOTING.md](TROUBLESHOOTING.md). Run `pytest -q`, `ruff check .`, and `./scripts/check_setup.sh`.
