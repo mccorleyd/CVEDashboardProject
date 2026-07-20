@@ -3,6 +3,8 @@
 ## A method before a fix
 Write down: time, URL/command, expected result, actual result, exact error/status, current folder (`pwd`), active Python (`which python`), and what changed last (`git diff`, `git log -1`). Make one change at a time. A traceback is useful to developers; do not show one to visitors.
 
+**Two machines, two problem spaces.** First decide whether the problem is on your **laptop** (local dev server, tests, a file that will not save) or on the **Linode server** (the live site, a service that will not start). Server-side commands below are typed into **LISH**, opened from the Linode Cloud Manager — never SSH, which your network blocks.
+
 ## Quick diagnostic tools
 
 |Question|Command/tool|How to read it|
@@ -10,7 +12,7 @@ Write down: time, URL/command, expected result, actual result, exact error/statu
 |Where am I?|`pwd`|Use before relative paths|
 |What files/ownership?|`ls -la`, `namei -l PATH`|Directory execute permission matters too|
 |Which Python?|`which python`, `python --version`|Expect `.venv/bin/python` in development|
-|Is a process listening?|`sudo ss -tulpn`|Find port/process; do not kill unknown process|
+|Is a process listening?|`sudo ss -tulpn` (server) / `netstat -ano \| findstr :5000` (Windows laptop)|Find port/process; do not kill unknown process|
 |Does Flask answer locally?|`curl -i http://127.0.0.1:8000/health`|200 plus JSON after Gunicorn|
 |Does service run?|`systemctl status vulnerability-dashboard --no-pager`|Read active/exit code|
 |Why did it fail?|`journalctl -u vulnerability-dashboard -n 100 --no-pager`|Read newest relevant error first|
@@ -19,15 +21,28 @@ Write down: time, URL/command, expected result, actual result, exact error/statu
 |What did Nginx reject?|`sudo tail -n 50 /var/log/nginx/error.log`|Proxy/static/config clues|
 |Does browser load assets?|DevTools Network/Console|404/blocked JS/CSS errors|
 |Does DNS point correctly?|`dig +short DOMAIN`|Should show intended public IP|
+|Is the server's copy up to date?|`git log --oneline -1` on the server vs. `git log --oneline -1` on your laptop|Server should match the commit you last pushed and pulled|
 
 ## Decision trees
 
 ### “The site will not load”
 1. Is the correct URL/domain used? Try `curl -I http://PUBLIC_IP` from a permitted client.
-2. Does provider firewall allow 80/443 and UFW show only intended rules? `sudo ufw status numbered`.
+2. Does the Linode Cloud Firewall allow 80/443, and does UFW show only intended rules? `sudo ufw status numbered`.
 3. Is Nginx active? `systemctl status nginx --no-pager`.
 4. Is something listening on 80/443? `sudo ss -tulpn`.
 5. Read Nginx error log. Do not change DNS/firewall and Nginx at the same time.
+
+### “I can't push my commits to GitHub”
+1. Read the exact error. `remote: Support for password authentication was removed` means you are being asked for a password where GitHub now expects the sign-in flow or a Personal Access Token — see Lesson 4.2 of the student guide.
+2. If VS Code never showed a "Sign in with GitHub" prompt, open the Accounts icon (bottom-left) and sign in manually, then retry the push.
+3. `Permission to X/Y.git denied` usually means you are signed in as the wrong GitHub account, or you are trying to push to a repository that is not yours — check `git remote -v` matches your own repository URL.
+4. A rejected push saying the remote contains work you do not have locally means someone (or another device of yours) pushed since your last pull: run `git pull` first, resolve any conflict, then push again.
+
+### “LISH is unresponsive or shows a blank screen”
+1. Press Enter — Weblish sometimes needs a keypress to display the current prompt.
+2. Resize the browser window; the terminal occasionally needs a nudge to redraw.
+3. Close the LISH tab and relaunch it from the Linode Cloud Manager. This never affects the server itself — LISH is only a viewer onto it.
+4. If login fails outright, confirm the password with the Cloud Manager's Reset Root Password option (this reboots the Linode), then log in as root and re-create your own user if it was lost.
 
 ### “Nginx loads but the application does not”
 1. Run `sudo nginx -t`; only reload after success.

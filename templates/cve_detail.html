@@ -1,1 +1,29 @@
-{% extends 'base.html' %}{% block content %}<p><a href="/cves">← Back to explorer</a></p><h1>{{ cve.id }}</h1><p>{{ cve.description }}</p><dl><dt>CVSS score / severity</dt><dd>{{ cve.score if cve.score is not none else 'Not scored' }} / {{ cve.severity }}</dd><dt>Published</dt><dd>{{ cve.published or 'Not supplied' }}</dd><dt>Last modified</dt><dd>{{ cve.last_modified or 'Not supplied' }}</dd><dt>Weaknesses</dt><dd>{{ cve.weaknesses|join(', ') or 'Not assigned' }}</dd></dl>{% if cve.known_exploited %}<p class="notice"><strong>Known Exploited:</strong> CISA catalogue entry: {{ cve.kev_details }}</p>{% endif %}<h2>How might a team prioritise this?</h2><p>Check whether you use the product, whether it is exposed, whether a fix exists and whether there is exploitation evidence. This page is learning material, not definitive remediation advice.</p><p><a href="{{ cve.nvd_url }}" rel="noopener">View the official NVD entry</a></p>{% endblock %}
+{% extends 'base.html' %}
+{% block content %}
+  <p><a href="/cves">&larr; Back to explorer</a></p>
+  <h1>{{ cve.id }}</h1>
+  <p>{{ cve.description }}</p>
+
+  <dl>
+    <dt>CVSS score / severity</dt>
+    <dd>{{ cve.score if cve.score is not none else 'Not scored' }} / {{ cve.severity }}</dd>
+
+    <dt>Published</dt>
+    <dd>{{ cve.published or 'Not supplied' }}</dd>
+
+    <dt>Last modified</dt>
+    <dd>{{ cve.last_modified or 'Not supplied' }}</dd>
+
+    <dt>Weaknesses</dt>
+    <dd>{{ cve.weaknesses|join(', ') or 'Not assigned' }}</dd>
+  </dl>
+
+  {% if cve.known_exploited %}
+    <p class="notice"><strong>Known Exploited:</strong> CISA catalogue entry: {{ cve.kev_details }}</p>
+  {% endif %}
+
+  <h2>How might a team prioritise this?</h2>
+  <p>Check whether you use the product, whether it is exposed, whether a fix exists and whether there is exploitation evidence. This page is learning material, not definitive remediation advice.</p>
+
+  <p><a href="{{ cve.nvd_url }}" rel="noopener">View the official NVD entry</a></p>
+{% endblock %}

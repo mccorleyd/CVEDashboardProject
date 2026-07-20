@@ -1,1 +1,42 @@
-{% extends 'base.html' %}{% block content %}<h1>CVE explorer</h1><p>Filters work in your browser after the server safely normalises data. {{ data.warning or '' }}</p><form id="filters"><label>Search <input id="search" type="search"></label><label>Severity <select id="severity"><option value="">All</option>{% for s in ['CRITICAL','HIGH','MEDIUM','LOW','UNASSIGNED'] %}<option>{{s}}</option>{% endfor %}</select></label><label>Minimum CVSS <input id="min-score" type="number" min="0" max="10" step="0.1"></label><label><input id="kev-only" type="checkbox"> Known Exploited only</label><label>Sort <select id="sort"><option value="newest">Newest</option><option value="score">Highest score</option></select></label><button type="reset">Clear filters</button></form><p id="result-count" aria-live="polite"></p><div id="cve-results" class="cve-list"></div><script id="cve-data" type="application/json">{{ data.cves|tojson }}</script>{% endblock %}
+{% extends 'base.html' %}
+{% block content %}
+  <h1>CVE explorer</h1>
+  <p>Filters work in your browser after the server safely normalises data. {{ data.warning or '' }}</p>
+
+  <form id="filters">
+    <label>Search
+      <input id="search" type="search">
+    </label>
+
+    <label>Severity
+      <select id="severity">
+        <option value="">All</option>
+        {% for s in ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'UNASSIGNED'] %}
+          <option>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label>Minimum CVSS
+      <input id="min-score" type="number" min="0" max="10" step="0.1">
+    </label>
+
+    <label>
+      <input id="kev-only" type="checkbox"> Known Exploited only
+    </label>
+
+    <label>Sort
+      <select id="sort">
+        <option value="newest">Newest</option>
+        <option value="score">Highest score</option>
+      </select>
+    </label>
+
+    <button type="reset">Clear filters</button>
+  </form>
+
+  <p id="result-count" aria-live="polite"></p>
+  <div id="cve-results" class="cve-list"></div>
+
+  <script id="cve-data" type="application/json">{{ data.cves|tojson }}</script>
+{% endblock %}
