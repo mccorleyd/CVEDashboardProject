@@ -1,36 +1,38 @@
 # Independent Ubuntu deployment lesson
 
-This guide is deliberately written as a sequence of small, checkable steps. Read every explanation before typing its command. Keep one SSH session open while changing SSH or firewall rules. Open a second session to prove access still works. If you do not control the cloud account, complete the local parts and record the commands you would run rather than guessing.
+This guide is deliberately written as a sequence of small, checkable steps. Read every explanation before typing its command. **Every command below is typed into LISH** (Linode's browser-based console, opened from the Linode Cloud Manager) — not SSH, which your network blocks and which this server does not need you to use. Unlike a normal SSH-based deployment, you do not need to keep a second session open "in case you get locked out": LISH is unaffected by firewall or SSH misconfiguration, because it connects at a lower level than the network stack. If you do not control the cloud account, complete the local parts and record the commands you would run rather than guessing.
 
 ## 1. What production deployment changes
 
-Your local Flask server is for learning: it restarts when the terminal closes and is not designed to face the public internet. Production uses three layers:
+Your local Flask server is for learning: it runs on your laptop, restarts when the terminal closes, and is not designed to face the public internet. Production uses three layers on the Linode server:
 
 ```text
 Internet browser → Nginx on ports 80/443 → Gunicorn on 127.0.0.1:8000 → Flask
 ```
 
-Nginx is the public front door. Gunicorn runs Python. systemd starts Gunicorn after reboot and records logs. The service user has only the access required for the project. The cache stays on the server. Do not open port 8000 in UFW or your cloud-provider firewall.
+Nginx is the public front door. Gunicorn runs Python. systemd starts Gunicorn after reboot and records logs. The service user has only the access required for the project. The cache stays on the server. Do not open port 8000 in UFW or the Linode Cloud Firewall.
+
+Code reaches this server in only one way: you push commits from your laptop to your **public GitHub repository**, then pull them down here with `git pull`. There is no direct connection, file copy, or upload from your laptop to this server at any point — see the STUDENT_GUIDE.md section 0 diagram if any of this is unfamiliar.
 
 ## 2. Record your values once
 
-In your private setup notes, write the following values. Do not put passwords or keys in Git.
+In your private setup notes, write the following values. Do not put passwords in Git — but note there are no SSH keys to manage in this workflow at all.
 
 |Meaning|Example only|
 |---|---|
-|Server public address|`203.0.113.10`|
-|SSH user|`ubuntu`|
-|Repository URL|private Git URL|
+|Linode public IP address|`203.0.113.10`|
+|GitHub repository URL (public)|`https://github.com/YOUR-USERNAME/vulnerability-dashboard.git`|
 |Application folder|`/srv/vulnerability-dashboard`|
 |Service user|`vulnerability-dashboard`|
 |Domain, if owned|`dashboard.example.org`|
 
 The example IP/domain are reserved examples. Replace them only in commands that explicitly need your own value.
 
-## 3. Connect and inspect
+## 3. Open LISH and inspect the server
+
+From the Linode Cloud Manager, open your Linode and click **Launch LISH Console**. Log in with your own sudo user (created in Lesson 2 of the student guide, not `root`).
 
 ```bash
-ssh -i YOUR_KEY_FILE ubuntu@YOUR_SERVER_ADDRESS
 whoami
 hostname
 pwd
@@ -50,15 +52,15 @@ id vulnerability-dashboard
 
 `apt update` refreshes the package list; `apt upgrade` installs available updates. The account is a system account intended to run the application, not an administrator login. Verify it exists using `id`. If you made this account by mistake before installing files, remove it with `sudo deluser --remove-home vulnerability-dashboard`.
 
-Before editing SSH configuration, take a provider snapshot if available. Check syntax before reload:
+Ubuntu runs `sshd` by default even though you never use it yourself; reviewing its configuration is still good practice, since it is reachable from the internet regardless. Check syntax before reload:
 
 ```bash
 sudo sshd -t
 ```
 
-Only after key-based login succeeds in a **second** terminal should you consider disabling password authentication. Do not use root login for this project.
+Do not use root login for this project, and do not rely on SSH password authentication — you have no legitimate reason to expose it at all, since your access route is LISH (see step 10, which closes port 22 at the network edge entirely).
 
-## 5. Install packages and copy the project
+## 5. Install packages and clone the project
 
 ```bash
 sudo apt install -y git python3-venv python3-pip nginx curl
@@ -76,7 +78,7 @@ ls -ld /srv/vulnerability-dashboard
 sudo -u vulnerability-dashboard /srv/vulnerability-dashboard/.venv/bin/python --version
 ```
 
-If `git clone` fails, read the message. A private repository may need a deploy key or an HTTPS credential method supplied by the repository host; do not paste personal passwords into shell history.
+**Because your repository is public, this `git clone` needs no credentials at all** — no SSH key, no deploy key, no GitHub sign-in. Anyone, including this server, can read a public repository over plain HTTPS. This is one of the practical advantages of the public-repo workflow: cloning onto the server is the simplest step in this whole guide. If `git clone` still fails, read the message carefully — a typo in the URL or a repository that is not actually public yet are the two most common causes.
 
 ## 6. Create the secret environment file
 
@@ -113,7 +115,7 @@ cd /srv/vulnerability-dashboard
 sudo -u vulnerability-dashboard .venv/bin/gunicorn --workers 2 --bind 127.0.0.1:8000 'app:create_app()'
 ```
 
-Keep this terminal running. In a second SSH terminal:
+Keep this terminal running. In a second LISH tab/window:
 
 ```bash
 curl -i http://127.0.0.1:8000/health
@@ -162,9 +164,7 @@ sudo tail -n 30 /var/log/nginx/error.log
 
 The configuration uses a request-rate zone. This is a simple protection against bursts, not a complete denial-of-service solution.
 
-## 10. Configure UFW and cloud firewall
-
-First keep SSH reachable. In your existing session:
+## 10. Configure UFW and the Linode Cloud Firewall
 
 ```bash
 sudo ufw allow OpenSSH
@@ -174,7 +174,9 @@ sudo ufw enable
 sudo ufw status verbose
 ```
 
-Then open a **second** SSH connection and load the site. If locked out, use the cloud console/recovery path. Remove an accidental rule by its displayed number: `sudo ufw delete NUMBER`. Your cloud-provider firewall must also allow only required traffic: SSH from trusted addresses where possible, HTTP/HTTPS as needed. Verify that Gunicorn port 8000 is not public with `sudo ss -tulpn` and provider rules.
+Then load the site in a browser to confirm it still works. If something goes wrong, LISH is unaffected — you cannot be locked out this way. Remove an accidental rule by its displayed number: `sudo ufw delete NUMBER`.
+
+Now add the second, independent layer: in the Linode Cloud Manager, open **Firewalls**, create one attached to this Linode, and allow only inbound TCP 80 and 443. **Do not allow inbound TCP 22** — you only ever reach this server through LISH, so there is no legitimate reason for port 22 to be reachable from the public internet at all, and closing it removes a whole category of attack. Verify that Gunicorn's port 8000 is not public either, with `sudo ss -tulpn` and the Cloud Firewall rules.
 
 ## 11. DNS and HTTPS
 
@@ -198,19 +200,28 @@ journalctl -u vulnerability-dashboard -n 30 --no-pager
 
 Also test public home page, CSS, CVE explorer, stale warning, headers (`curl -I URL`), keyboard navigation and a reboot only after recording a known-good Git commit.
 
-### Safe update
+### Safe update: the day-2 workflow
+Every future change follows the same short loop. It starts on your laptop, not here:
+
+```text
+1. Edit code locally in VS Code, test with pytest -q and python app.py
+2. git add / git commit / git push   (to your public GitHub repository)
+3. Open LISH and run the commands below
+```
+
+Then, in LISH:
 ```bash
 cd /srv/vulnerability-dashboard
 sudo -u vulnerability-dashboard git status
 sudo -u vulnerability-dashboard git fetch --tags
-sudo -u vulnerability-dashboard git checkout TAG_OR_COMMIT
+sudo -u vulnerability-dashboard git pull
 sudo -u vulnerability-dashboard .venv/bin/pip install -r requirements.txt
 sudo -u vulnerability-dashboard .venv/bin/pytest -q
 sudo systemctl restart vulnerability-dashboard
 curl -i http://127.0.0.1:8000/health
 ```
 
-Record the previous commit before checking out a new one. If health/tests fail, return to the recorded commit, install its requirements, restart and test again. Back up the Nginx site, unit file and non-secret configuration records. Do not back up live keys into a public location.
+`git pull` needs no credentials, for the same reason `git clone` did in step 5: the repository is public. Record the previous commit (`git log --oneline -1` before pulling) so you can return to it if health checks or tests fail after an update: `git checkout PREVIOUS_COMMIT`, reinstall requirements, restart, retest. If `git pull` reports a conflict, something on the server was hand-edited outside of Git — prefer `git checkout -- <file>` to discard the local change and keep GitHub as the single source of truth, rather than trying to merge server-side edits. To deploy a specific tagged release instead of the latest commit, use `git checkout TAG_NAME` after fetching tags. Back up the Nginx site, unit file and non-secret configuration records. Do not back up live keys into a public location.
 
 ### Removal
 Disable the service, remove its Nginx symlink/site, test/reload Nginx, delete UFW rules only when no longer needed, and preserve required evidence/logs. Remove service user and project directory only after confirming no other service uses them.

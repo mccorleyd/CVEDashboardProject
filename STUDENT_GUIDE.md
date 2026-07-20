@@ -1,17 +1,19 @@
 # Vulnerability Dashboard student workbook
 
 **Audience:** Digital T Level students building and deploying a security dashboard.
-**Project outcome:** a small, accessible security dashboard running on an Ubuntu server, deployed the same way real small applications are deployed.
+**Project outcome:** a small, accessible security dashboard, developed on your own laptop and hosted on a Linode cloud server, deployed the same way real small applications are deployed.
 **How long:** a guided project, best spread across several study sessions. Linux, Python, HTML/CSS/JavaScript and deployment each need real time — do not rush server-security or web-foundations lessons to save a day.
 
-> **Important safety rule:** never paste an API key, private SSH key, password or a server IP that is not public into chat, screenshots, Git, or an AI tool. Never run a command on the cloud server unless you can say what it will do and how to check it worked.
+**Your working pattern for the whole project:** write and test code on your own laptop in VS Code; commit and push it to **your own public GitHub repository**; then, separately, log into your Linode server through its browser-based **LISH console** (not SSH — your network blocks it, and the server is never reachable directly from your laptop) and pull the same code down to run it for real. Section 0 below explains this in full before you touch a terminal.
+
+> **Important safety rule:** never paste an API key, private SSH key, password or a server IP that is not public into chat, screenshots, Git, or an AI tool. Because your GitHub repository is **public**, this matters even more than usual: anything you commit is visible to anyone on the internet, forever, even if you later delete it in a new commit. Never run a command on the Linode server unless you can say what it will do and how to check it worked.
 
 ## Contents
 0. [Start here: the map of the project](#0-start-here-the-map-of-the-project)
 1. [Understand the problem and plan your dashboard](#lesson-1--understand-the-problem-and-plan-your-dashboard)
-2. [Linux foundations: connect to and navigate your Ubuntu server](#lesson-2--linux-foundations-connect-to-and-navigate-your-ubuntu-server)
+2. [Linux foundations: connect to your Linode server with LISH](#lesson-2--linux-foundations-connect-to-your-linode-server-with-lish)
 3. [Secure the starting point](#lesson-3--secure-the-starting-point)
-4. [Python fundamentals, tools and Git](#lesson-4--python-fundamentals-tools-and-git)
+4. [Set up your laptop: Python, VS Code and Git](#lesson-4--set-up-your-laptop-python-vs-code-and-git)
 5. [HTML, CSS and JavaScript foundations](#lesson-5--html-css-and-javascript-foundations)
 6. [Build and understand the first Flask pages](#lesson-6--build-and-understand-the-first-flask-pages)
 7. [Model OWASP Top 10 content with JSON](#lesson-7--model-owasp-top-10-content-with-json)
@@ -50,6 +52,31 @@ Flask application ──► local cache file ──► NVD API / optional CISA K
     ▼
 HTML, CSS and JavaScript sent back to your browser
 ```
+
+### How your laptop, GitHub and Linode fit together
+
+This project uses three separate machines, and it is important you understand the *shape* of that arrangement before you type a single command, because it explains almost every instruction later in this guide.
+
+```text
+Your laptop (VS Code)                 GitHub                          Linode server
+┌───────────────────────┐  git push  ┌────────────────────┐ git pull ┌─────────────────────────┐
+│ Edit HTML/CSS/JS/Python│ ─────────►│ Your PUBLIC         │─────────►│ gunicorn + Nginx run the │
+│ Run "python app.py" to │           │ repository          │          │ real, live dashboard      │
+│ preview changes locally│ ◄───────  │ (the only bridge     │          │ Reached only through the │
+│ git commit             │  git pull │  between the other   │          │ browser-based LISH       │
+└───────────────────────┘  (rare)    │  two machines)       │          │ console, never SSH        │
+                                      └────────────────────┘          └─────────────────────────┘
+```
+
+* **Your laptop** is where all of your actual coding happens: writing HTML/CSS/JavaScript/Python in VS Code, running the Flask development server to preview your work, and running your automated tests. Nothing you do here is visible to anyone else until you push it.
+* **GitHub** holds **your own public repository** — a copy of the project's history that both your laptop and your Linode server can talk to. It is the *only* connection between the other two machines. Your laptop never talks to the Linode server directly, and the Linode server never talks to your laptop directly.
+* **Your Linode server** is a real cloud computer that hosts the finished, running dashboard for anyone on the internet to visit. You do not edit code here. You only pull down commits that already exist on GitHub, and use a small number of Linux commands to keep the service running.
+
+**Why is there no direct connection between your laptop and the server?** Two reasons, one practical and one professional. Practically, your school/college network blocks outbound SSH, which is the normal way people connect a laptop directly to a cloud server — so a direct connection is not available to you even if you wanted one. Professionally, this "laptop → shared repository → server" pattern (sometimes summarised as **GitOps**) is exactly how real software teams operate: nobody securely copies files by hand onto a production server; instead, a trusted, reviewable history in a shared repository is what gets deployed. You are learning the pattern used by real engineering teams, not a workaround.
+
+**Because you cannot SSH into the server, you will use LISH** — Linode's browser-based console, opened from the Linode Cloud Manager website over ordinary HTTPS (the same protocol as any web page), not over the SSH port your network blocks. Lesson 2 explains LISH fully.
+
+**Because your GitHub repository is public**, treat every commit as something a stranger, a future employer, or an automated scanner could read within seconds of your push. `.env` files, API keys, passwords and personal information must never be committed — the `.gitignore` in this project already excludes `.env`, but it cannot protect you if you paste a secret directly into a tracked file. On the positive side, a clean, well-explained public repository with sensible commit messages is something you can genuinely show a future employer or apprenticeship interviewer — treat your commit history as part of the deliverable, not just the final code.
 
 ### Rules, choices and evidence
 
@@ -152,34 +179,47 @@ Show the sketch and decision record. Explain: "Why might a high CVSS score not b
 
 ---
 
-# Lesson 2 — Linux foundations: connect to and navigate your Ubuntu server
+# Lesson 2 — Linux foundations: connect to your Linode server with LISH
 **Effort:** substantial. **Suggested Git checkpoint:** `record server orientation`.
 
 ## Why this matters
-A cloud instance is a remote virtual computer rented from a provider. You control it through a terminal. A **public IP address** can be reached from the internet; a **private IP address** is for internal networks. Treat the server like a real production system: use named users, record changes and avoid unnecessary exposure. Everything in this lesson is a skill you will reuse every remaining lesson, so it is worth doing slowly.
+A cloud instance is a remote virtual computer rented from a provider — in this project, **Linode**. You control it through a terminal. Normally that terminal reaches the server over SSH, but your school/college network blocks outbound SSH connections, so you will connect a different way: through **LISH**, a browser-based console built into the Linode dashboard. Treat the server like a real production system regardless of how you reach it: use named users, record changes and avoid unnecessary exposure. Everything in this lesson is a skill you will reuse every remaining lesson, so it is worth doing slowly.
 
 ## New words
-* **SSH (Secure Shell):** encrypted remote terminal connection.
-* **Key pair:** a private key kept secret on your computer and a public key installed on the server.
-* **Host key:** the server's identity fingerprint. Check it with the cloud-provider dashboard or trusted course record the first time.
+* **Linode Cloud Manager:** the website (`cloud.linode.com`) where you manage your Linode server: power it on/off, view its IP address, reset its root password, and open its console.
+* **LISH (Linode Shell):** a console built into the Linode Cloud Manager that connects you to your server as if you had plugged a screen and keyboard directly into it. It works entirely over your normal browser connection (HTTPS, the same protocol as any web page), so it is unaffected by SSH being blocked. It also does not depend on the server's own network settings or firewall working correctly — even if you misconfigure networking on the server, LISH still gets you back in.
+* **Weblish:** the specific text-based, browser-window version of LISH you will use (Linode also offers a graphical version called Glish, which you do not need for this headless server).
+* **public IP address:** an address that can be reached from the internet; a **private IP address** is for internal networks only.
+* **root:** the single most powerful account on a Linux system, able to do anything. You use it briefly to set up your own account, then avoid it for daily work.
 * **user:** an account with its own files and permissions.
 * **sudo:** "run this command with administrator privileges". It is powerful, not a shortcut.
 * **shell:** the program that reads the commands you type, one line at a time, and runs them.
 * **path:** the route to a file. An **absolute path** starts at `/`, the top of the filesystem, e.g. `/home/ubuntu/notes.txt`. A **relative path** starts from where you currently are, e.g. `notes.txt`. `~` is a shortcut for your home folder.
 
-## 2.1 First connection
-Your cloud-provider dashboard or course setup record gives you a hostname or public IP, username and private-key file. In your own terminal, move to the folder containing the key. On Windows PowerShell, `cd` works too; on macOS/Linux use Terminal.
+## 2.1 Open LISH and log in
+1. Sign in to the Linode Cloud Manager at `cloud.linode.com` using the account details from your course setup record.
+2. Open your Linode instance from the list, and note its **public IP address** shown on the summary page — you will need it in later lessons.
+3. Click the **Launch LISH Console** button (sometimes shown as a "Console" tab). This opens Weblish in a new browser tab: a terminal window running entirely inside your browser.
+4. If this is the first time anyone has logged in, you will see a `login:` prompt. Because LISH behaves like a screen plugged directly into the machine, it always asks for a **username and password** — key-based login, which is how SSH normally works, does not apply here. Log in as `root` using the root password from your course setup record. If you do not have one, use the Cloud Manager's **Reset Root Password** option, then reboot the Linode and try again.
+
+**A note on copy and paste:** Weblish is a normal browser window, so you can usually paste multi-word commands using your browser's own paste shortcut (`Ctrl+Shift+V` on Windows/Linux, `Cmd+V` on macOS, or right-click → Paste) rather than retyping everything by hand. There is, however, **no file upload or drag-and-drop** into LISH — it is a keyboard-and-screen console, nothing more. Every file that ends up on this server will arrive either because you typed it directly, or because you ran `git pull` to fetch something already pushed to GitHub (Lesson 12). Keep this in mind: it is the reason secrets on the server later have to be typed in by hand rather than copied across as a file.
+
+## 2.2 Create your own account — do not stay logged in as root
+Working as `root` for anything beyond initial setup is unsafe: one mistyped command has no safety net. Create yourself a normal account with `sudo` privileges, then use that from now on.
 
 ```bash
-cd ~/Downloads
-ssh -i vulnerability-dashboard-class.pem ubuntu@203.0.113.10
+adduser YOUR-NAME
+usermod -aG sudo YOUR-NAME
+su - YOUR-NAME
+whoami
 ```
 
-**What each part means:** `cd` changes folder; `-i` selects the identity/private-key file; `ubuntu@...` means "log in as ubuntu on this server". The address above is documentation-only; use the address in your own setup record.
+`adduser` creates the account and asks you to set a password — choose a strong one you have not used elsewhere, since it is the only credential protecting this console. `usermod -aG sudo` adds you to the `sudo` group, so you can still run administrator commands when needed by typing `sudo` first. `su - YOUR-NAME` switches into your new account inside the same LISH session; `whoami` confirms you are no longer `root`. From this point on, log in to LISH as `YOUR-NAME`, not `root`, and use `sudo` only for the specific commands that need it.
 
-If asked whether to trust an unknown host key, **stop and compare the fingerprint with the cloud-provider dashboard or trusted setup record**. Do not accept a different fingerprint without investigation.
+**Checkpoint:** you can log out of LISH entirely (close the tab) and reopen it, logging in as your own user with your own password, not root.
+**Common mistake:** doing all remaining work logged in as `root` "because it's easier". Every remaining lesson assumes a named, least-privilege user; root is for emergencies and initial setup only.
 
-## 2.2 Lab: paths, folders and files
+## 2.3 Lab: paths, folders and files
 A computer stores files inside folders (also called directories). Try this on the server, one line at a time:
 
 ```bash
@@ -205,7 +245,7 @@ ls -la
 **Checkpoint:** you can explain absolute, relative and home-folder paths, and what `cp` does differently from `mv`.
 **Try a mistake safely:** type `cd missing-folder`. Read the error, then run `ls` to see why it failed. Do not create a random folder just to silence an error.
 
-## 2.3 Lab: read and edit text safely
+## 2.4 Lab: read and edit text safely
 Configuration and code are text files. A command-line editor does not protect you from mistakes, so make one change, save, inspect, then continue. `nano` is a good choice because its shortcuts appear at the bottom of the screen.
 
 ```bash
@@ -230,7 +270,7 @@ less first-note.txt
 **Checkpoint:** explain the difference between copying and moving a file.
 **Common error:** saving a file in the wrong folder. Use `pwd` before `nano`, or use an absolute path.
 
-## 2.4 Lab: permissions in plain English
+## 2.5 Lab: permissions in plain English
 Linux permissions decide who may read (`r`), write (`w`) or enter/execute (`x`) a file. `ls -l` shows three groups: owner, group, everyone else. A private key should not be readable by everyone. Do not solve every problem with `sudo` or `chmod 777`; that hides the question "who should really have access?"
 
 ```bash
@@ -245,7 +285,7 @@ ls -l first-note.txt
 **Checkpoint:** explain why a service account needs read permission to application files but should not own system configuration. You will use this idea again in Lesson 3 and Lesson 12.
 **Safety rule:** only change permissions on files you own in this lab. Record the old mode before changing a production file.
 
-## 2.5 Lab: reading command help
+## 2.6 Lab: reading command help
 Good developers do not memorise every option. They find help, read the relevant part, and test a small example. On Ubuntu, `man` opens a manual page, `--help` gives short help, and `apropos` searches manual titles.
 
 ```bash
@@ -256,7 +296,7 @@ apropos 'copy files'
 
 Quit a manual with `q`. Look up `cp` and identify what recursive copying means before you ever use `cp -r`. Do not run options merely because an example contains them.
 
-## 2.6 Full command reference
+## 2.7 Full command reference
 
 |Command|Purpose|Example|What to look for|
 |---|---|---|---|
@@ -282,9 +322,9 @@ Quit a manual with `q`. Look up `cp` and identify what recursive copying means b
 |`man` / `--help`|read documentation|`man cp`|`q` to quit a manual|
 
 ## Checkpoint
-Run `whoami`, `id`, `ss -tulpn`, and `systemctl status ssh --no-pager`. A pager lets long output scroll; `--no-pager` prints it once. Explain which command tells you your current folder and which command tells you your identity.
+Run `whoami`, `id`, `ss -tulpn`, and `systemctl status ssh --no-pager`. A pager lets long output scroll; `--no-pager` prints it once. Explain which command tells you your current folder and which command tells you your identity. Notice that `sshd` (the SSH server) is running by default even though you never use it to log in yourself — you will decide what to do about that in Lesson 3.
 
-**Likely errors:** `No such file or directory` usually means the folder/file spelling is wrong; use `pwd` and `ls`. `Permission denied` means your user cannot perform that action; do not automatically add `sudo` — ask why permission is needed.
+**Likely errors:** `No such file or directory` usually means the folder/file spelling is wrong; use `pwd` and `ls`. `Permission denied` means your user cannot perform that action; do not automatically add `sudo` — ask why permission is needed. If LISH itself appears frozen or shows a blank screen, try pressing Enter, resizing the browser window, or closing and reopening the console tab from the Cloud Manager — this is a display quirk of the browser terminal, not a problem with the server.
 
 ---
 
@@ -292,7 +332,7 @@ Run `whoami`, `id`, `ss -tulpn`, and `systemctl status ssh --no-pager`. A pager 
 **Effort:** medium. **Suggested Git checkpoint:** `document basic server hardening`.
 
 ## Why this matters
-A public server receives internet traffic. Least privilege means each user and service has only the access it needs — the same idea you practised with `chmod` in Lesson 2.4, now applied to whole accounts and network ports. Do hardening one small reversible step at a time.
+A public server receives internet traffic. Least privilege means each user and service has only the access it needs — the same idea you practised with `chmod` in Lesson 2.5, now applied to whole accounts and network ports. Do hardening one small reversible step at a time. You have an unusual safety net here: because you connect through **LISH**, not SSH, nothing you do to the network stack, the firewall, or `sshd` can ever lock you out of the box — LISH bypasses all of it. That does not mean carelessness is fine; it means you can practise real hardening discipline (verify, then apply) without the classic fear of a broken SSH session stranding you.
 
 ## Tasks with verify and undo steps
 1. **Update the operating system.**
@@ -300,49 +340,118 @@ A public server receives internet traffic. Least privilege means each user and s
    sudo apt update
    sudo apt upgrade
    ```
-   `apt update` downloads a list of available package versions. `apt upgrade` installs updates. Verify that it finishes without errors. Undoing package updates is not usually simple; take a provider snapshot first if your cloud-provider account provides it.
+   `apt update` downloads a list of available package versions. `apt upgrade` installs updates. Verify that it finishes without errors. Undoing package updates is not usually simple; take a Linode snapshot or backup first if available.
 2. **Create the application account.**
    ```bash
    sudo adduser --system --group --home /srv/vulnerability-dashboard vulnerability-dashboard
    id vulnerability-dashboard
    ```
    This makes a non-login system user and group for the service. Verify its UID/group using `id`. If created in error before deployment, you can remove it with `sudo deluser --remove-home vulnerability-dashboard`.
-3. **Review SSH before changing it.**
+3. **Review SSH, even though you do not use it yourself.** By default Ubuntu runs `sshd`, reachable from the whole internet, whether or not you personally log in that way. Anyone scanning the internet can find it, so it is still your responsibility to secure or restrict it.
    ```bash
    sudo less /etc/ssh/sshd_config
    sudo sshd -t
    ```
-   Look for `PasswordAuthentication` and `PermitRootLogin`. `sshd -t` checks syntax without applying changes. **Do not close the current session.** After checking the configuration, open a second SSH terminal and confirm key login works before reloading SSH: `sudo systemctl reload ssh`.
-4. **Set the firewall carefully.**
+   Look for `PasswordAuthentication` and `PermitRootLogin`. `sshd -t` checks syntax without applying changes. In a normal SSH-based deployment you would now open a second terminal to confirm you are not about to lock yourself out before reloading; here, LISH already gives you that guarantee, so apply the change directly: `sudo systemctl reload ssh`.
+4. **Set the host firewall carefully.**
    ```bash
    sudo ufw allow OpenSSH
    sudo ufw status numbered
    sudo ufw enable
    sudo ufw status verbose
    ```
-   UFW is Ubuntu's firewall tool. First allowing `OpenSSH` prevents locking yourself out. Verify rules and status. Undo a specific accidental rule with `sudo ufw delete NUMBER`, using the number shown; emergency undo is `sudo ufw disable`, and record the change.
+   UFW is Ubuntu's own firewall tool, enforced inside the server. Allowing `OpenSSH` here still matters — it is a record of intent and keeps the option open for legitimate admin tools — even though you personally never connect that way. Verify rules and status. Undo a specific accidental rule with `sudo ufw delete NUMBER`, using the number shown; emergency undo is `sudo ufw disable`, and record the change. Unlike a normal server, disabling UFW entirely by mistake here would not lock you out of anything, since LISH is unaffected — but still treat it with production-level care.
 5. **Inspect ports.** Run `sudo ss -tulpn`. At this stage, only services you expect should listen. Later, allow Nginx HTTP/HTTPS rather than opening Gunicorn's internal port.
+6. **Add a second, independent layer: the Linode Cloud Firewall.** UFW runs *inside* the server; a Linode Cloud Firewall is enforced *outside* it, at Linode's own network edge, before traffic ever reaches your Linode at all. In the Linode Cloud Manager, open **Firewalls** → create a new firewall → attach it to your Linode. Add inbound rules allowing TCP 80 and 443 (you will need these from Lesson 12 onward). Because you only ever access this server through LISH, you have no legitimate use for external SSH — **explicitly deny inbound TCP port 22** in the Cloud Firewall rules, or simply do not allow it. This is a real, professional "defence in depth" decision: two independent layers (Cloud Firewall and UFW) must both agree before a port is reachable from the internet, and you have removed a whole avenue of attack that you never needed in the first place.
 
 ## Reflection
-Why is running Gunicorn as `root` a poor choice? What is the safe rollback if a new SSH setting stops the second connection?
-**Stretch:** write a one-paragraph change record with purpose, command, verification and rollback for one firewall change.
+Why is running Gunicorn as `root` a poor choice? Why is it safe to be more aggressive about closing port 22 here than it would be on a server you normally reach over SSH?
+**Stretch:** write a one-paragraph change record with purpose, command, verification and rollback for one firewall change, and explain in it which layer (UFW or Linode Cloud Firewall) would have stopped a given unwanted connection.
 
 ---
 
-# Lesson 4 — Python fundamentals, tools and Git
+# Lesson 4 — Set up your laptop: Python, VS Code and Git
 **Effort:** substantial. **Suggested Git checkpoint:** `initial project structure`.
 
-## 4.1 Install and check developer tools
-```bash
-sudo apt install -y git python3 python3-venv python3-pip curl
-python3 --version
-git --version
-curl --version
-```
-`-y` confirms the package manager question automatically. Check that each version command prints a version. If it does not, copy the exact error into evidence.
+## Why this matters
+From here on, almost everything you build happens on **your own laptop**, not on the Linode server. You write and test code locally, using an editor called VS Code, and you use Git to record and share your work through your own **public** GitHub repository. The Linode server, which you only ever reach through LISH, will not run Python or Flask directly until Lesson 12 — until then, it stays a plain Ubuntu box you occasionally revisit for Linux practice.
 
-## 4.2 Python fundamentals, using your practice dataset
-You will read and adapt real Python throughout this project. Before that, build the vocabulary using a scratch file. Create `~/dashboard-lab/python_basics.py` with `nano` and work through it a section at a time, running `python3 python_basics.py` after each addition.
+Throughout the rest of this guide, commands are written for a typical terminal. Where macOS/Linux and Windows commands genuinely differ, both are shown; otherwise, wherever you see `python`, macOS/Linux users should read this as `python3` if plain `python` is not recognised or reports Python 2.
+
+## 4.1 Install VS Code, Python and Git on your laptop
+1. **VS Code:** download and install it from `code.visualstudio.com` for your operating system. Open it once to confirm it starts.
+2. **Python:**
+   * **Windows:** download the installer from `python.org/downloads`, run it, and **tick "Add python.exe to PATH"** before clicking Install — this single checkbox is the single most common source of "python is not recognised" errors. Open a **new** PowerShell/terminal window afterwards (existing windows will not see the update) and check: `python --version`.
+   * **macOS:** install from `python.org/downloads`, or with Homebrew (`brew install python3`) if you have it. Check with `python3 --version`.
+   * **Linux:** `sudo apt install -y python3 python3-venv python3-pip`, then check with `python3 --version`.
+3. **Git:**
+   * **Windows:** install "Git for Windows" from `git-scm.com`. Accept the default options during setup — they include a credential helper that will make GitHub sign-in far simpler later in this lesson.
+   * **macOS:** `git --version` in Terminal will usually prompt you to install Apple's Command Line Tools, which include Git; accept the prompt.
+   * **Linux:** `sudo apt install -y git`.
+4. In VS Code, open **View → Terminal** to get an integrated terminal, and install the **Python** extension (Microsoft) from the Extensions panel (the icon of four squares in the sidebar) — it gives you syntax highlighting, linting and a "Run Python File" button for the work ahead.
+
+**Checkpoint:** running `python --version` (or `python3 --version`), `git --version` and opening VS Code's integrated terminal all work without errors.
+**Likely error:** `'python' is not recognized as an internal or external command` on Windows almost always means the PATH checkbox was missed during install — reinstall and tick it, or add Python to PATH manually, then open a brand-new terminal window.
+
+## 4.2 Create your GitHub account and your public repository
+1. If you do not already have one, create a free account at `github.com`. Use an email address you will still have access to after this course.
+2. Create a new **public** repository for your dashboard. If your tutor has provided a starter/template repository, use GitHub's "Use this template" button to generate your own independent public copy of it; otherwise create an empty public repository and you will populate it in the next step. Give it a sensible name, e.g. `vulnerability-dashboard`.
+3. Read the short description GitHub gives you for "public" versus "private" before you confirm — you are deliberately choosing **public**, so any of your commits are visible to anyone on the internet. Revisit section 0's note on why that matters (never commit secrets; keep it as a portfolio piece).
+
+### Authenticating with GitHub: why not SSH keys?
+Pushing to GitHub normally needs either an SSH key or a **Personal Access Token (PAT)** used over HTTPS. This project uses **HTTPS with GitHub's sign-in flow**, for two reasons: it needs no key-pair setup, and — usefully, given your network blocks SSH generally — it works entirely over ordinary HTTPS (port 443), the same as browsing the web. When VS Code's Source Control panel first asks you to push, click **Sign in with GitHub**; a browser tab opens for you to authorise VS Code, and your credentials are then stored securely by your operating system's credential manager (Windows Credential Manager, macOS Keychain, or the Git Credential Manager installed alongside Git). You will not need to type a password or token again on this laptop.
+
+If you ever need the manual fallback (for example, a script or an unusual terminal that cannot open a browser), GitHub can issue a **Personal Access Token**: a long random string that acts like a password with a limited scope and expiry date, created under GitHub Settings → Developer settings → Personal access tokens. Treat a PAT exactly like a password — never commit it, never paste it into chat, and revoke it immediately if you ever expose it by accident.
+
+## 4.3 Clone your repository to your laptop
+Choose or create a folder for your coursework — for example a `projects` folder inside your home folder/Documents — then clone your **own** repository into it (not the original class reference repository):
+
+```bash
+git clone https://github.com/YOUR-GITHUB-USERNAME/vulnerability-dashboard.git
+cd vulnerability-dashboard
+```
+
+Using `https://` (not `git@`) means Git will authenticate over HTTPS using the sign-in flow from 4.2, rather than expecting an SSH key. Open the folder in VS Code: `code .` from the terminal, or File → Open Folder.
+
+Set your identity once, so your commits are correctly attributed to you rather than a generic placeholder:
+```bash
+git config --global user.name "Your Name"
+git config --global user.email "the-email-you-used-for-github@example.com"
+```
+
+## 4.4 Create your virtual environment and run the tests
+A **virtual environment** (`venv`) is an isolated folder containing Python packages for one project, so installing a package here never affects another project or your operating system's own Python.
+
+**Windows (PowerShell):**
+```powershell
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+pip install -r requirements-dev.txt
+```
+**macOS/Linux:**
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+pip install -r requirements-dev.txt
+```
+
+Your prompt should now start with `(.venv)`. Leave the environment later with `deactivate`. If `pip` installs but Python cannot import Flask, check whether the prompt still shows `(.venv)` — you may have opened a new terminal tab that needs activating again.
+
+**Windows-specific error:** `cannot be loaded because running scripts is disabled on this system` when activating means PowerShell's execution policy is blocking the activation script. Run `Set-ExecutionPolicy -Scope Process Bypass` in that same PowerShell window and try activating again — this only relaxes the policy for the current window, not your whole system.
+
+Confirm everything works before writing any code of your own:
+```bash
+pytest -q
+python app.py
+```
+Open `http://127.0.0.1:5000` in your own browser — this is now running entirely on your laptop, with nothing published anywhere else yet. Stop it with `Ctrl+C`.
+
+**A note on two separate environments:** you will create a *second*, completely independent virtual environment later, on the Linode server, when you deploy in Lesson 12. They share nothing except the same `requirements.txt`/`requirements-dev.txt` files tracked in Git — installing a package here never affects the server, and vice versa. This is normal and expected, not a mistake to "fix" by trying to share one environment between two machines.
+
+## 4.5 Python fundamentals, using your practice dataset
+You will read and adapt real Python throughout this project. Before that, build the vocabulary using a scratch file. In VS Code, create a new file called `python_basics.py` somewhere outside your Git project (for example in a `dashboard-lab` folder next to it, so it is never accidentally committed), and work through it a section at a time. Use VS Code's **Run Python File** button (the triangle in the top right of the editor, provided by the Python extension) or a terminal command — `python python_basics.py` (Windows) / `python3 python_basics.py` (macOS/Linux) — after each addition.
 
 ### Variables, types and f-strings
 ```python
@@ -423,25 +532,9 @@ print(first_high)  # 'CVE-2026-90002'
 
 **Checkpoint:** you can explain, in your own words, what a list comprehension does and why `.get()` is safer than `["key"]` for data that might be incomplete.
 
-## 4.3 Concepts: Git and virtual environments
-**Git** records snapshots (commits) of work. It is not a backup for passwords: `.gitignore` tells Git which local files, such as `.env`, must not be added. A **repository** is the folder Git tracks. A **virtual environment** (`venv`) is an isolated folder containing Python packages for one project, so installing a package here never affects another project or the operating system.
+## 4.6 Git guided tasks
+You already cloned your repository and set your identity in 4.3. `.gitignore` tells Git which local files, such as `.env`, must never be added — worth double-checking now that everything you push is public.
 
-## 4.4 Get the project and create the environment
-This repository already contains a complete reference dashboard: a working Flask app, templates, styling, tests and deployment files. Over the coming lessons you will run it, read it, test it, deploy it — and in Lessons 6 and 7 you will author a brand-new route and a brand-new content file yourself, so you practise building, not only editing.
-
-```bash
-cd /srv
-sudo git clone YOUR_REPOSITORY_URL vulnerability-dashboard
-sudo chown -R "$USER":"$USER" /srv/vulnerability-dashboard
-cd /srv/vulnerability-dashboard
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip
-pip install -r requirements-dev.txt
-```
-`source` runs the activation script in the current shell. Your prompt normally starts with `(.venv)`. It does not modify Python globally. Leave it later with `deactivate`. If `pip` installs but `python` cannot import Flask, check whether the prompt has `(.venv)`.
-
-## 4.5 Git guided tasks
 ```bash
 git status
 git add README.md
@@ -451,34 +544,39 @@ git diff
 git switch -c improve-readme
 # make one small documentation change
 git add README.md && git commit -m "Clarify local setup"
-git switch work
+git switch main
 git merge improve-readme
+git push
 ```
-`git status` answers "what changed?"; `git add` chooses changes for the next snapshot; `git commit -m` records them with an explanation; `git diff` shows unstaged changes. If your branch name is not `work`, run `git branch --show-current` and substitute it.
+`git status` answers "what changed?"; `git add` chooses changes for the next snapshot; `git commit -m` records them with an explanation; `git diff` shows unstaged changes; `git push` sends your commits to your public GitHub repository — this is the moment they stop being private to your laptop. If your default branch is not `main`, run `git branch --show-current` and substitute it.
+
+**VS Code alternative:** every command above has a matching button in the **Source Control** panel (the icon with branching lines in the sidebar): a `+` to stage a file, a message box and tick to commit, a "Sync Changes" button that pushes and pulls together, and a graphical diff view when you click a changed file. Both routes do the same thing underneath — use whichever is faster for you, but make sure you can still explain what each button actually does in Git terms.
 
 ### Worked example: a small, recoverable change
-Imagine `git diff` shows only one added sentence. Committing and reviewing it looks like this:
+Imagine `git diff` shows only one added sentence. Committing, pushing and reviewing it looks like this:
 ```bash
 git status
 git diff
 git add templates/index.html
 git commit -m "Add dashboard audience statement"
+git push
 git log --oneline -3
 ```
-If `git status` unexpectedly lists `.env`, stop: it must not be staged.
+If `git status` unexpectedly lists `.env`, stop: it must not be staged, let alone pushed to a public repository.
 
 Now practise recovering from an unwanted commit:
 ```bash
 git log --oneline -1
 git revert HEAD
+git push
 git log --oneline -2
 ```
-`git revert` creates a **new** commit that reverses the previous one — safer for shared history than editing old commits. Refresh the page to confirm the text returned to its earlier state.
+`git revert` creates a **new** commit that reverses the previous one — safer for shared history than editing old commits. Refresh the page to confirm the text returned to its earlier state. Note that the original, unwanted commit is still visible in your public history after a revert — reverting undoes its *effect*, not its *existence*. This is exactly why secrets must never be committed in the first place: there is no equivalent "revert" that makes a leaked secret unseen.
 
 ### Controlled merge-conflict exercise
-In a pair, both edit the same single sentence differently in separate branches. Merge one branch, then merge the other. Git places conflict markers. Read both versions, keep the intended text, remove the markers, `git add`, and commit. Tag this practice milestone with a name that will not be confused with your real release later: `git tag -a v0.1-practice-merge -m "First classroom merge-conflict practice"`. The real release tag, `v1.0.0`, is reserved for Lesson 12 when the dashboard is actually deployed.
+In a pair, both edit the same single sentence differently in separate branches, and both push your branches to your own repository (or to a shared practice repository your tutor sets up, if working across two GitHub accounts). Merge one branch, then merge the other. Git places conflict markers. Read both versions, keep the intended text, remove the markers, `git add`, and commit — VS Code's Source Control panel will highlight conflicted files and offers an inline "Accept Current/Incoming/Both" tool if you would rather resolve it visually than by reading raw markers. Tag this practice milestone with a name that will not be confused with your real release later: `git tag -a v0.1-practice-merge -m "First classroom merge-conflict practice"` then `git push --tags`. The real release tag, `v1.0.0`, is reserved for Lesson 12 when the dashboard is actually deployed.
 
-**Never:** add `.env`, `*.pem`, downloaded keys or copied server secrets. Check `git status` before every `git add .`.
+**Never:** add `.env`, `*.pem`, downloaded keys or copied server secrets. Check `git status` before every `git add .`, and remember that `git push` is the point of no return for anything sensitive — once it is public, treat any exposed secret as compromised and rotate it immediately rather than trying to hide it with another commit.
 
 ---
 
@@ -486,10 +584,10 @@ In a pair, both edit the same single sentence differently in separate branches. 
 **Effort:** substantial. **Suggested Git checkpoint:** `build a standalone practice page`.
 
 ## Why this matters
-Before you edit the dashboard's real templates, build a small page entirely by hand. This is the only way to get real practice writing markup, styling it and adding behaviour, rather than only ever reading someone else's finished file. Work in `~/dashboard-lab/webpage/`, separate from the Flask project.
+Before you edit the dashboard's real templates, build a small page entirely by hand, on your laptop, in VS Code. This is the only way to get real practice writing markup, styling it and adding behaviour, rather than only ever reading someone else's finished file. Work in a `dashboard-lab/webpage/` folder outside your Git project, so this practice page never becomes part of your dashboard's history.
 
 ## 5.1 HTML: structure first
-HTML describes the **structure** and **meaning** of a page, not its appearance. Create `~/dashboard-lab/webpage/practice.html`:
+HTML describes the **structure** and **meaning** of a page, not its appearance. In VS Code, create `dashboard-lab/webpage/practice.html`:
 
 ```html
 <!doctype html>
@@ -540,7 +638,7 @@ HTML describes the **structure** and **meaning** of a page, not its appearance. 
 </html>
 ```
 
-Read each new element as you type it: `<header>`, `<nav>`, `<main>`, `<section>` and `<footer>` are **semantic** elements — they describe what a part of the page *is*, which helps screen readers and search engines, not just browsers. `<label for="search">` is connected to `<input id="search">` by matching `for`/`id` values: click the label text and the input receives focus. `aria-describedby` links the input to an explanatory paragraph. Open the file directly in a browser (`file:///...` or a simple local server) to see it rendered before any CSS exists.
+Read each new element as you type it: `<header>`, `<nav>`, `<main>`, `<section>` and `<footer>` are **semantic** elements — they describe what a part of the page *is*, which helps screen readers and search engines, not just browsers. `<label for="search">` is connected to `<input id="search">` by matching `for`/`id` values: click the label text and the input receives focus. `aria-describedby` links the input to an explanatory paragraph. Open the file directly in a browser (right-click `practice.html` in VS Code's file explorer → **Reveal in File Explorer/Finder** and double-click it, or use a "Live Preview"/"Live Server" VS Code extension for auto-refresh on save) to see it rendered before any CSS exists.
 
 ### Guided task
 1. Add a third practice card using **CVE-2026-90006** from your dataset (Anchor Payments Gateway, CRITICAL, 9.1, Known Exploited).
@@ -548,7 +646,7 @@ Read each new element as you type it: `<header>`, `<nav>`, `<main>`, `<section>`
 3. View the page with images/CSS disabled (or before `practice.css` exists) and confirm the content still makes sense read top-to-bottom. This is what a screen reader broadly experiences.
 
 ## 5.2 CSS: presentation with a system
-CSS controls appearance. A **selector** chooses elements; a **declaration** is a property/value pair. Create `~/dashboard-lab/webpage/practice.css`:
+CSS controls appearance. A **selector** chooses elements; a **declaration** is a property/value pair. Create `dashboard-lab/webpage/practice.css`:
 
 ```css
 :root {
@@ -627,7 +725,7 @@ Reuse the reasoning from Lesson 1's design task, now with tools:
 4. Confirm severity colour is never the *only* signal: each badge above also has text (`CRITICAL`, `HIGH`), not just a colour.
 
 ## 5.3 JavaScript: responding to the user
-JavaScript runs in the browser and can read/change the page after it has loaded. Create `~/dashboard-lab/webpage/practice.js`:
+JavaScript runs in the browser and can read/change the page after it has loaded. Create `dashboard-lab/webpage/practice.js`:
 
 ```javascript
 // Toggle a "more detail" panel and keep aria-expanded in sync,
@@ -706,21 +804,28 @@ X-Content-Type-Options: nosniff
 `GET` asks to read a resource. `/health` is the route. `200 OK` means the server completed the request successfully. `Content-Type: application/json` says the body is JSON, not HTML.
 
 ## 6.2 Run the reference application locally
+On your laptop, with your virtual environment active:
 ```bash
-source .venv/bin/activate
 python app.py
 ```
-Open `http://127.0.0.1:5000`. `127.0.0.1` means "this computer only". Do **not** run Flask's development server on `0.0.0.0` on a public server. Stop it with `Ctrl+C`.
+Open `http://127.0.0.1:5000`. `127.0.0.1` means "this computer only" — nobody else, not even someone else on your home Wi-Fi, can reach it. Do **not** run Flask's development server this way once you reach the Linode server in Lesson 12; a proper deployment is the whole subject of that lesson. Stop it with `Ctrl+C`.
 
 ### Lab: processes and ports
-A **process** is a running program. A **port** is a numbered doorway used for network traffic. A browser normally uses 80 (HTTP) or 443 (HTTPS); this local Flask example uses 5000. With `python app.py` still running, open a **second** terminal (a second SSH connection if you are on the server) and run:
+A **process** is a running program. A **port** is a numbered doorway used for network traffic. A browser normally uses 80 (HTTP) or 443 (HTTPS); this local Flask example uses 5000. With `python app.py` still running, open a **second** terminal (a second tab in VS Code's integrated terminal works well) and run:
 
+**Windows (PowerShell):**
+```powershell
+netstat -ano | findstr :5000
+curl -i http://127.0.0.1:5000/health
+Get-Process -Name python
+```
+**macOS/Linux:**
 ```bash
 ss -tulpn | grep 5000
 curl -i http://127.0.0.1:5000/health
 ps aux | grep '[p]ython app.py'
 ```
-The square brackets in the last command stop `grep` from finding its own process in the list. Return to the first terminal and press `Ctrl+C` — this sends an interrupt to the program. Run the port command again; it should no longer show port 5000.
+On Windows, `netstat -ano` lists connections with a process ID (PID) in the last column; match that PID against `Get-Process` or Task Manager. On macOS/Linux, the square brackets in the `ps` command stop `grep` from finding its own process in the list. Either way, return to the first terminal and press `Ctrl+C` — this sends an interrupt to the program. Run the port command again; it should no longer show port 5000.
 
 **Checkpoint:** explain why Gunicorn will later bind to `127.0.0.1:8000` and Nginx, not Gunicorn, faces the public internet (Lesson 12).
 
@@ -780,7 +885,7 @@ Notice the parallels with Lesson 5: `{% for cve in cves %}` is Jinja's loop synt
 **Checkpoint:** `/practice` loads with three correctly styled cards and no traceback. Explain, in your own words, the path a request takes from typing the URL to seeing the card.
 
 ## 6.5 Guided small change to the real pages
-1. Open `templates/index.html` using `nano`.
+1. Open `templates/index.html` in VS Code.
 2. Under the introductory paragraph, type one sentence explaining your chosen audience. This is **your code/text**, not starter code.
 3. Save, refresh the browser, then use browser DevTools: right-click the sentence → Inspect.
 4. Change one CSS colour in `static/css/styles.css`, refresh, and use the DevTools Elements/Styles panel to see the applied rule.
@@ -788,7 +893,7 @@ Notice the parallels with Lesson 5: `{% for cve in cves %}` is Jinja's loop synt
 ### Deliberate experiments
 **Experiment A:** change `/health` to a nonexistent URL in curl; notice `404`. **Experiment B:** deliberately remove a closing Jinja brace from `templates/practice.html`, reload, read the error locally, then restore it immediately. Production visitors receive a generic error page, not a traceback.
 
-**Likely errors:** `Address already in use` means another process owns port 5000; use `ss -tulpn | grep 5000` and stop only your own process. `TemplateNotFound` usually means a wrong filename or folder — check `templates/practice.html` is spelled and placed exactly as referenced. A browser cache can hide CSS changes; hard refresh with `Ctrl+Shift+R`.
+**Likely errors:** `Address already in use` means another process owns port 5000; use `netstat -ano | findstr :5000` (Windows) or `ss -tulpn | grep 5000` (macOS/Linux) and stop only your own process. `TemplateNotFound` usually means a wrong filename or folder — check `templates/practice.html` is spelled and placed exactly as referenced. A browser cache can hide CSS changes; hard refresh with `Ctrl+Shift+R`.
 
 ---
 
@@ -809,7 +914,7 @@ echo $?
 Exit code `0` means valid JSON. If invalid, Python prints a line/column. Go to that line and look for a missing comma, quote or bracket.
 
 ## Guided task: author a JSON file from scratch
-Before touching the real content file, practise writing JSON yourself with lower stakes. Create `~/dashboard-lab/owasp-practice.json` and type these three **invented** teaching categories by hand (do not copy-paste):
+Before touching the real content file, practise writing JSON yourself with lower stakes. Create `dashboard-lab/owasp-practice.json` and type these three **invented** teaching categories by hand (do not copy-paste):
 
 ```json
 {
@@ -843,7 +948,7 @@ Before touching the real content file, practise writing JSON yourself with lower
 }
 ```
 
-1. Validate it: `python -m json.tool ~/dashboard-lab/owasp-practice.json > /dev/null && echo valid`.
+1. Validate it: `python -m json.tool dashboard-lab/owasp-practice.json` (should print the file back out with no error).
 2. Deliberately delete one comma between two fields, run the command again, and read exactly what Python reports. Note the line/column, then fix it.
 3. Add a fourth invented category of your own, following the same shape, and validate again.
 
@@ -914,7 +1019,7 @@ python -m json.tool tests/fixtures/nvd_sample.json | less
 Find `CVE-2026-0001`, the English `description`, `published`, `baseScore`, and `baseSeverity`. `tests/fixtures` is controlled sample data, not live data.
 
 ### Practise with Python
-Create `~/dashboard-lab/read_json.py`:
+Create `dashboard-lab/read_json.py`:
 ```python
 import json
 from pathlib import Path
@@ -1023,7 +1128,7 @@ Assume `CACHE_TTL_SECONDS=1800` (30 minutes):
    pytest -q tests/test_cache.py -vv
    ```
    Read the test before and after running it. Find the mock that deliberately makes NVD fail — this is safer than disabling a real network connection to test failure.
-5. Set `CACHE_TTL_SECONDS=1` in your shell (`export CACHE_TTL_SECONDS=1`), restart the app, wait two seconds, and disconnect/disable external access only on a non-production/local test environment. Observe the stale warning when upstream data cannot refresh. Restore the default by closing that terminal or `unset CACHE_TTL_SECONDS`.
+5. Set `CACHE_TTL_SECONDS=1` in your shell — `$env:CACHE_TTL_SECONDS=1` on Windows PowerShell, `export CACHE_TTL_SECONDS=1` on macOS/Linux — restart the app, wait two seconds, and disconnect/disable external access only on a non-production/local test environment. Observe the stale warning when upstream data cannot refresh. Restore the default by closing that terminal, or `Remove-Item Env:CACHE_TTL_SECONDS` (Windows) / `unset CACHE_TTL_SECONDS` (macOS/Linux).
 6. Explain why the CISA client catches failures and still returns CVEs.
 
 ---
@@ -1096,8 +1201,8 @@ def test_unscored_record_has_safe_fallback():
 `def` starts a function. Comments explain each stage. `assert` fails the test when its condition is false. The existing test suite follows the same idea using fixtures.
 
 ## Run and read tests
+With your virtual environment active (`.venv\Scripts\Activate.ps1` on Windows, `source .venv/bin/activate` on macOS/Linux — see Lesson 4.4):
 ```bash
-source .venv/bin/activate
 pytest -q
 ruff check .
 ```
@@ -1128,27 +1233,47 @@ The first checks response headers. The second checks accidental files. The third
 # Lesson 12 — Deploy with Gunicorn, systemd and Nginx
 **Effort:** substantial. **Suggested Git checkpoint:** `deploy vulnerability dashboard securely`; **release tag:** `v1.0.0`.
 
-Follow `deployment/DEPLOYMENT.md` in order. It is written so you can verify each step yourself. This workbook explains the why; that guide gives exact verified commands and rollback. Do not skip the second SSH connection/firewall checks.
+Follow `deployment/DEPLOYMENT.md` in order. It is written so you can verify each step yourself. This workbook explains the why; that guide gives exact verified commands and rollback. Every command in this lesson is typed into **LISH**, not SSH — reopen it from the Linode Cloud Manager exactly as you did in Lesson 2. Do not skip the firewall checks; you no longer need the "keep a second SSH session open" precaution from a normal deployment, because LISH cannot be locked out by a firewall or SSH mistake, but you should still verify before moving on out of good habit.
 
 ## Production terms
 * **Gunicorn:** production server that runs Flask worker processes; bind it to `127.0.0.1:8000`, not the public internet.
 * **systemd:** Ubuntu service manager. It starts Gunicorn after reboot and keeps logs.
 * **Nginx:** public reverse proxy. It receives web traffic, serves as a controlled front door and forwards to Gunicorn.
-* **UFW:** host firewall. Allow SSH and Nginx HTTP/HTTPS only.
+* **UFW:** host firewall, enforced inside the server. Allow SSH and Nginx HTTP/HTTPS only.
+* **Linode Cloud Firewall:** a second, independent firewall enforced by Linode at the network edge, before traffic reaches the server at all (set up in Lesson 3). Both this and UFW must agree before a port is reachable.
 * **HTTPS:** encryption between browser and Nginx. A public trusted certificate needs a valid domain pointing at the server; a bare private IP normally cannot receive one.
 
 ## Deployment checklist
-1. Create the `vulnerability-dashboard` non-root service user and `/srv/vulnerability-dashboard` directory with correct ownership.
-2. Clone the repository, create `/srv/vulnerability-dashboard/.venv`, install pinned requirements.
-3. Put secrets only in `/etc/vulnerability-dashboard/vulnerability-dashboard.env`, owned root and readable by the service group; never in Git.
-4. Test Gunicorn manually from a second terminal with `curl http://127.0.0.1:8000/health`.
-5. Copy the provided systemd service, run `daemon-reload`, enable/start, inspect `systemctl status` and `journalctl -u vulnerability-dashboard`.
-6. Copy Nginx configuration, set the real domain, run `sudo nginx -t` **before** reload, then reload and test public routes/static CSS.
-7. Apply UFW Nginx rule after confirming SSH safety. Check `ss -tulpn`.
-8. If a domain exists, obtain/test Certbot HTTPS; otherwise document the HTTP/private-classroom limitation.
-9. Reboot only after recording a working rollback path and prove the service returns after reboot.
-10. Practise update/rollback: record commit, update in a branch, test, restart, health-check; return to the recorded commit if it fails.
-11. Tag the tested, working deployment: `git tag -a v1.0.0 -m "First classroom release"`.
+1. Open LISH and create the `vulnerability-dashboard` non-root service user and `/srv/vulnerability-dashboard` directory with correct ownership, exactly as in Lesson 3.
+2. Install `git`, `python3-venv`, `python3-pip` and `nginx` with `apt`, then clone **your own public repository** straight onto the server:
+   ```bash
+   sudo git clone https://github.com/YOUR-GITHUB-USERNAME/vulnerability-dashboard.git /srv/vulnerability-dashboard
+   ```
+   Because the repository is **public**, this needs no SSH key, no deploy key and no GitHub sign-in at all — anyone, including this server, can read a public repository over plain HTTPS. This is one of the real advantages of the public-repo workflow: the server-side clone is the simplest part of the whole deployment.
+3. Create `/srv/vulnerability-dashboard/.venv` (a second, independent virtual environment from the one on your laptop — see Lesson 4.4) and install the **pinned production** requirements (`requirements.txt`, not `requirements-dev.txt`; the server does not need `pytest`/`ruff`).
+4. Put secrets only in `/etc/vulnerability-dashboard/vulnerability-dashboard.env`, owned root and readable by the service group; never in Git. **Because LISH has no file upload or paste-from-clipboard-into-a-file mechanism beyond your browser's normal copy/paste, you will type or paste this file's contents directly into `nano` inside the console** — there is no other route for a secret to reach this server. This is a second, physical reason (on top of the "public repository" reason from Lesson 4) that secrets can never travel through Git: they simply have no path there.
+5. Test Gunicorn manually from a second LISH tab/window with `curl http://127.0.0.1:8000/health`.
+6. Copy the provided systemd service, run `daemon-reload`, enable/start, inspect `systemctl status` and `journalctl -u vulnerability-dashboard`.
+7. Copy Nginx configuration, set the real domain (or `_` for a temporary IP-only test), run `sudo nginx -t` **before** reload, then reload and test public routes/static CSS.
+8. Apply the UFW Nginx rule. Check `ss -tulpn`. Then, in the Linode Cloud Manager, confirm your Cloud Firewall (Lesson 3) allows inbound 80/443 and does **not** allow inbound 22 from the public internet — you have no legitimate use for it, since you only ever connect via LISH.
+9. If a domain exists, point its DNS at your Linode's public IP address, then obtain/test Certbot HTTPS; otherwise document the HTTP/private-classroom limitation.
+10. Reboot only after recording a working rollback path and prove the service returns after reboot.
+11. Tag the tested, working deployment on your laptop, and push the tag: `git tag -a v1.0.0 -m "First classroom release"` then `git push --tags`.
+
+## Updating the live site: the day-2 workflow
+Everything above gets the dashboard running for the first time. From now on, every future change follows the same short loop, and it is worth memorising the shape of it, because this — not the one-off setup above — is what you will actually do most often:
+
+```text
+1. Edit code on your laptop, in VS Code
+2. Test locally: pytest -q, then python app.py
+3. git add / git commit / git push   (to your public GitHub repository)
+4. Open LISH (Linode Cloud Manager → your Linode → Launch LISH Console)
+5. cd /srv/vulnerability-dashboard && sudo -u vulnerability-dashboard git pull
+6. sudo systemctl restart vulnerability-dashboard
+7. curl -i http://127.0.0.1:8000/health, then check the public site
+```
+
+Notice what does **not** appear in that list: there is no direct copy from your laptop to the server at any point. Step 3 publishes your change to GitHub; step 5 is the server independently fetching it. If `git pull` reports a conflict on the server, something has changed the server's copy independently of GitHub (for example, a file was hand-edited directly in LISH) — resolve it the same way you learned in Lesson 4's merge-conflict exercise, or, for a production server, prefer to discard the local change (`git checkout -- <file>`) and keep your GitHub history as the single source of truth.
 
 ## Worked example: diagnosing a failed deploy
 ### Scenario
@@ -1156,13 +1281,13 @@ You run `systemctl status vulnerability-dashboard --no-pager` and see `Active: f
 
 ### Reasoning route
 1. A 502 means Nginx could not get a suitable response from the upstream application. It does not automatically mean Nginx is broken.
-2. On the server, run `curl -i http://127.0.0.1:8000/health`. If it cannot connect, investigate Gunicorn/systemd first.
+2. In LISH, run `curl -i http://127.0.0.1:8000/health`. If it cannot connect, investigate Gunicorn/systemd first.
 3. Run `journalctl -u vulnerability-dashboard -n 50 --no-pager`. Read the first relevant error line.
 4. Suppose it says the Python executable does not exist. Compare `ExecStart` in `/etc/systemd/system/vulnerability-dashboard.service` with `ls -l /srv/vulnerability-dashboard/.venv/bin/gunicorn`.
 5. Correct only the path, run `sudo systemctl daemon-reload`, then `sudo systemctl restart vulnerability-dashboard`.
 6. Re-test local health, then `sudo nginx -t`, then the public page. Record the evidence.
 
-Do not restart every service repeatedly without reading logs. The order above identifies which layer failed and proves the repair. Use `TROUBLESHOOTING.md` for further decision trees (site will not load, Nginx loads but the app does not, Gunicorn works manually but systemd fails, NVD errors, CSS/JS not loading, permission denied).
+Do not restart every service repeatedly without reading logs. The order above identifies which layer failed and proves the repair. Use `TROUBLESHOOTING.md` for further decision trees (site will not load, Nginx loads but the app does not, Gunicorn works manually but systemd fails, NVD errors, CSS/JS not loading, permission denied, can't push to GitHub).
 
 ---
 
@@ -1176,6 +1301,8 @@ Demonstrate: (1) dashboard, (2) OWASP content, (3) live/recent cached CVEs, (4) 
 * **Why cache?** "It makes pages faster and reduces NVD rate-limit pressure. If NVD fails, we label older data as stale rather than pretending it is fresh."
 * **Why Nginx and Gunicorn?** "Nginx is the public reverse proxy. Gunicorn runs Flask privately on localhost. This avoids exposing the development server."
 * **How did you handle untrusted descriptions?** "Jinja escapes template values and our JavaScript uses `textContent`, not `innerHTML`."
+* **Why did the server not need an SSH key or a deploy token to get your code?** "The repository is public, so `git clone`/`git pull` over HTTPS needs no authentication at all — only pushing requires proving who you are, and that only ever happens from my laptop."
+* **How does a change get from your laptop to the live site?** "I push it to my GitHub repository, then separately log into the server through LISH and run `git pull` there — the two machines never talk to each other directly."
 * **What would you add?** Name an extension, its risk and its acceptance test.
 
 ## Optional extension cards (easy to harder)
