@@ -1,28 +1,35 @@
 # CyberScope: OWASP and CVE Security Dashboard
 
-A classroom-ready reference app and guided UK Digital T Level project. It teaches students to build, test, secure and deploy a small Flask dashboard rather than copy an unexplained finished solution.
+CyberScope is a complete UK Digital T Level classroom project: a readable Flask reference implementation plus a week-long guided workbook for students with minimal technical experience. Students learn to orient themselves on Ubuntu, use Git, build pages, understand JSON/APIs, normalise/cache vulnerability data, test failure paths, review security and deploy with Gunicorn, systemd and Nginx.
 
-> Screenshot placeholder: add a desktop dashboard screenshot here after local run.
-> Screenshot placeholder: add a mobile CVE explorer screenshot here after accessibility testing.
+## Start with the workbook
+Read [STUDENT_GUIDE.md](STUDENT_GUIDE.md) from Lesson 1 onwards. It contains lessons, command reference, guided work, controlled experiments, errors, checkpoints, 12 challenge cards, responsible-AI guidance, a team option, final demo and 20 assessed extensions. Mentors should read [MENTOR_GUIDE.md](MENTOR_GUIDE.md) first.
 
-## Plan, tree, decisions and limits
-**Plan:** configure safely → build Flask pages → model local OWASP data → call/normalise/cache NVD → filter safely in the browser → test/security review → deploy. **Tree:** `app.py`, `services/`, `data/`, `templates/`, `static/`, `tests/`, `scripts/`, `deployment/`, and course documents at the repository root. **Decisions:** Flask/Jinja keeps the first backend readable; file cache demonstrates persistence without a database; NVD data is normalised before templates; OWASP is local, curated JSON; CISA enrichment is best-effort. **Limits:** data is a small recent window, not an asset inventory or risk engine; CISA absence is not proof of no exploitation; a private IP cannot normally obtain a trusted public HTTPS certificate.
+## Architecture and routes
 
-## Features and architecture
-`Browser → Nginx → Gunicorn → Flask → NVD/CISA or local cache`. Routes: `/`, `/owasp`, `/cves`, `/cves/<id>`, `/about`, `/api/cves?severity=HIGH`, `/health`. CVE pages search/filter client-side using `textContent`, never unsafe HTML insertion. Cache writes atomically and falls back to stale data on NVD failure.
+```text
+Browser → Nginx → Gunicorn → Flask → file cache → NVD API / optional CISA KEV API
+```
+
+Routes: `/`, `/owasp`, `/cves`, `/cves/<CVE-ID>`, `/about`, `/api/cves?severity=HIGH`, `/health`. The reference uses local curated OWASP JSON, normalises NVD records before display, uses atomic file writes, displays stale-cache warnings, validates local query input, and uses Jinja escaping/JavaScript `textContent` for external text.
 
 ## Quick local setup
 ```bash
-python3 -m venv .venv && source .venv/bin/activate
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements-dev.txt
-cp .env.example .env  # set values locally; do not commit it
+cp .env.example .env
 pytest -q
 python app.py
 ```
-Visit `http://127.0.0.1:5000`. The development server is for local learning only; use Gunicorn behind Nginx in production.
+Open `http://127.0.0.1:5000`. The Flask development server is local-learning only; production uses Gunicorn behind Nginx. See [deployment/DEPLOYMENT.md](deployment/DEPLOYMENT.md) for the full Ubuntu journey.
 
 ## Configuration and sources
-`NVD_API_KEY` is optional, `CACHE_TTL_SECONDS` defaults to 1800, and `ENABLE_CISA_KEV=true` controls optional enrichment. NVD API 2.0: <https://nvd.nist.gov/developers/vulnerabilities>. CISA KEV JSON: <https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json>. OWASP source: <https://owasp.org/www-project-top-ten/>. Source-check record is 2026-07-20; the build environment could not access those sites, so a mentor **must verify the current edition/URLs before delivery** and update the local dataset if needed. “This product uses the NVD API but is not endorsed or certified by the NVD.”
+`NVD_API_KEY` is optional. `CACHE_TTL_SECONDS` defaults to 1800 seconds. `ENABLE_CISA_KEV=true` controls enrichment. No real `.env` file or key belongs in Git. Sources: [NVD API 2.0](https://nvd.nist.gov/developers/vulnerabilities), [CISA KEV JSON](https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json), and [OWASP Top 10](https://owasp.org/www-project-top-ten/). “This product uses the NVD API but is not endorsed or certified by the NVD.”
 
-## Security, deployment and limitations
-Headers, input validation, escaping, non-root systemd service, localhost Gunicorn, Nginx request limit, no committed secrets, and UFW guidance are included. Read [SECURITY_REVIEW.md](SECURITY_REVIEW.md), [TROUBLESHOOTING.md](TROUBLESHOOTING.md), and [deployment/DEPLOYMENT.md](deployment/DEPLOYMENT.md). Run `ruff check .` and `pytest -q`; live data is deliberately not a test dependency.
+The source-check record is 2026-07-20. The build environment could not connect to official sites, so the included local OWASP teaching dataset carries a clear maintenance warning. A mentor must verify the current released OWASP edition and current official API URLs before classroom delivery, update/review the data if necessary, validate JSON, test `/owasp`, and commit the update.
+
+## Security, quality and known limits
+Security controls cover environment variables, non-root service operation, localhost Gunicorn, Nginx request limits, UFW/SSH guidance, validation, output encoding, timeout/error handling and security headers. Complete [SECURITY_REVIEW.md](SECURITY_REVIEW.md) and use [TROUBLESHOOTING.md](TROUBLESHOOTING.md). Run `pytest -q`, `ruff check .`, and `./scripts/check_setup.sh`.
+
+This is a learning dashboard, not an asset inventory, scanner, remediation tool or risk decision engine. It fetches a small recent NVD window. CVSS does not represent complete organisational risk; CISA KEV absence does not show that a vulnerability is not exploited. File cache is deliberately simple; a multi-server production deployment would use managed shared storage.

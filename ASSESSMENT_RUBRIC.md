@@ -1,15 +1,18 @@
-# Assessment rubric
-Evidence may be commits, screenshots, command output, tests, review worksheet and demonstration.
+# CyberScope assessment rubric
+
+Assess evidence from the student's commits, decision record, terminal/log screenshots, tests, completed self-review, documentation and individual demonstration. A learner can be stronger in one row than another. “Secure” is the expected complete core standard; “Advanced” adds justified, tested independence.
 
 |Area|Emerging|Developing|Secure|Advanced|
 |---|---|---|---|---|
-|Linux/server|Runs copied commands|Navigates and explains basic commands|Uses non-root user, logs and UFW safely|Diagnoses/reverses a safe server change|
-|Git|Single unclear commit|Uses status/add/commit|Meaningful history, diff/branch and ignored secrets|Resolves conflict, revert/tag with rationale|
-|HTML/CSS|Static page|Semantic page with styling|Responsive, keyboard-friendly and contrast checked|Evidence-led accessibility improvements|
-|Python/Flask|Edits starter route|Explains route/template|Clear functions/config/error pages|Improves design without needless complexity|
-|API/data|Displays fixture|Makes checked request|Normalises missing fields and cache fallback|Thoughtful pagination/query design|
-|Errors/tests|Manual happy path|Some assertions|Fixtures, mocks, routes and failure tests pass|Adds valuable independent tests|
-|Security|Names a risk|Uses `.env`|Headers, validation, escaping, least privilege reviewed|Explains residual risk and trade-offs|
-|Deployment|Local run|Manual Gunicorn|systemd, Nginx, UFW verification|Safe update/rollback and monitoring evidence|
-|Documentation/problem solving|Incomplete notes|Records steps|Accurate decision/troubleshooting evidence|Clear non-technical explanation and learning reflection|
-|Communication/demo|Shows screen|Answers basic questions|Explains architecture and a diagnosis|Defends prioritisation/design choices with evidence|
+|Linux and server skills|Runs provided commands with continuous support.|Navigates folders and explains `pwd`, `ls`, `cd`, user and sudo.|Uses commands deliberately; records verify/undo; checks processes/ports/logs; preserves SSH access.|Diagnoses an unfamiliar service/permission issue methodically and explains least privilege.|
+|Git usage|Has an incomplete or single commit.|Uses status/add/commit with some messages.|Has logical commits, diff/history evidence, branch/merge or revert, tag, and no secrets.|Resolves controlled conflict and uses history to support a safe rollback.|
+|HTML and CSS|Edits static supplied content.|Uses headings/links/labels and basic styling.|Produces semantic, responsive layout with visible focus, non-colour severity text and contrast evidence.|Uses an accessibility audit to improve a real issue and explains trade-offs.|
+|Python and Flask|Changes starter code without explanation.|Explains route/template relationship.|Explains request flow, configuration, routes, error page and readable functions.|Makes a small well-tested improvement without unnecessary abstraction.|
+|API integration|Can name an API.|Uses fixture or manual request.|Explains GET/parameters/headers/status/JSON/timeouts and optional key handling.|Adds bounded, validated API functionality and explains rate-limit impact.|
+|Data handling|Displays values directly.|Finds fields in fixture.|Normalises optional NVD fields; distinguishes CVE/CWE/CVSS/KEV; labels stale data.|Justifies prioritisation using assets/exposure/evidence rather than scores alone.|
+|Error handling|Shows traceback or stops at error.|Reports one friendly error.|Uses timeout, explicit exceptions, cache fallback and safe missing-field display.|Adds meaningful failure test and a useful diagnosis guide.|
+|Testing|Can run tests.|Explains one assertion.|Uses fixtures/mocks; unit/route/cache tests pass without live NVD.|Writes an independent valuable test or CI workflow.|
+|Security|Can name a generic risk.|Keeps `.env` out of an obvious commit.|Completes review: headers, validation, output encoding, key handling, non-root, firewall/SSH evidence.|Explains residual risks and improves one control with a test/review.|
+|Deployment|Runs locally only.|Runs Gunicorn manually.|Nginx proxies to systemd-managed non-root Gunicorn; health/log/UFW verification recorded.|Performs a tested update/rollback and documents HTTPS/DNS or limitation.|
+|Documentation|Notes are missing or copied.|Some setup notes exist.|Clear decision, test, troubleshooting and source/limitation records.|Produces a concise guide understandable by a non-technical stakeholder.|
+|Problem solving and communication|Cannot explain choices.|Answers direct prompts.|Explains one diagnosis, architecture, data limits and design choice in own words.|Adapts explanation for technical/non-technical audience and defends evidence-based trade-offs.|

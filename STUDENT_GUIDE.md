@@ -1,46 +1,508 @@
-# Student workbook — CyberScope
+# CyberScope student workbook
 
-## How to work
-For each phase: **concept → mentor demo → guided task → checkpoint → reflection → extension**. Type the small marked changes yourself; starter files are provided. Use documentation, browser DevTools Network/Console, `journalctl`, and logs before asking AI. Keep a decision record: **Decision | options | choice | reason | trade-off | result after testing**.
+**Audience:** Digital T Level students who are new to servers, Python and web development.
+**Project outcome:** a small, accessible security dashboard running on an Ubuntu server.
+**How long:** a guided week of lessons plus optional extensions. Work at a pace agreed with your mentor; do not rush server-security steps.
 
-### Fixed versus choice
-Fixed: Flask, NVD, local OWASP JSON, safe output, tests, secure deployment. Choose: name/branding, accessible palette, OWASP cards/accordion/table/timeline, CVE card/table, metrics/prioritisation, one extension and a non-technical explanation.
+> **Important safety rule:** never paste an API key, private SSH key, password or a server IP that is not public into chat, screenshots, Git, or an AI tool. Never run a command on the cloud server unless you can say what it will do and how to check it worked.
 
-## Phase 1 — Direction (short)
-**Learn:** audience, CVE/CWE/CVSS and prioritisation. **Demo:** mentor compares score with KEV evidence. **Task/deliverable:** audience statement, sketch and decision record. **Check:** sketch shows title, metrics, filters. **Reflect:** why is CVSS not business risk? **Mistake:** treating KEV absence as safe. **Stretch:** interview a non-technical user. **Commit:** `plan dashboard`.
+---
 
-## Phase 2 — Ubuntu orientation (medium)
-A cloud instance is a rented remote computer; public IP reaches it, private IP is internal. SSH uses a key pair; verify the host-key fingerprint with the provider. Connect: `ssh -i key.pem ubuntu@PUBLIC_IP`. Practise `pwd`, `ls -la`, `cd`, `mkdir`, `cp`, `mv`, `cat`, `less`, `nano`, `grep`, `tail`, `whoami`, `id`, `ps`, `ss -tulpn`, `systemctl`, `journalctl`, `curl`. **Challenge:** create `~/practice/a.txt`, copy/move it, print it, then remove the practice folder. **Check:** explain each command. **Reflect:** what does sudo change? **Commit:** `record server orientation`.
+## 0. Start here: the map of the project
 
-## Phase 3 — Setup and Git (medium)
-`sudo apt update && sudo apt upgrade`; install `git python3-venv python3-pip curl`. Run `git init`, `git status`, `git add`, `git commit`, `git log --oneline`, `git diff`. `.gitignore` prevents `.env` and `.venv` entering history. Make a branch, merge a deliberate one-line conflict, use `git revert`, then tag `v1.0.0`. **Check:** history has meaningful commits. **Mistake:** adding `.env`. **Stretch:** remote GitHub repo. **Commit:** `initial structure`.
+### What you are building
+CyberScope is a website which shows two kinds of security information:
 
-## Phase 4 — First pages (medium)
-A route maps a URL to a Python function; Jinja renders HTML. Read `app.py` route and `base.html`. **Type:** add a sentence to the home template. **Experiment:** change `<h1>` then reload; inspect its HTML in DevTools. **Likely error:** `ModuleNotFoundError` means activate `.venv`. **Check:** `/` and `/health` work. **Reflect:** why not expose debug Flask publicly? **Commit:** `first flask pages`.
+* **OWASP Top 10** — a locally stored, student-friendly guide to common web application security risks.
+* **CVE records** — recent public vulnerability records from NIST's NVD API, reduced to a short, safe-to-display format.
 
-## Phase 5 — OWASP data (medium)
-Read `data/owasp_top_10.json`: titles are OWASP-summarised; explanations/examples are teaching text. **Task:** choose cards (reference), accordion, detail-table or timeline and improve one explanation in your own words. **Check:** all categories and official links render. **Experiment:** edit a JSON value; invalid comma gives a JSON decode error. **Extension:** update process: verify official release, update edition/categories/URLs/CWEs, peer-review, test, commit. **Commit:** `display owasp data`.
+It is not a scanner and it does not decide whether an organisation is safe. A CVSS score is a technical severity score. CISA KEV membership is evidence that a vulnerability has been exploited. A security team still needs to check whether it uses the affected product, whether it is exposed, and whether a fix is available.
 
-## Phase 6 — APIs (substantial)
-An endpoint is a URL; `GET` reads data; headers carry metadata; JSON is nested lists/dictionaries. Run `curl -i 'https://services.nvd.nist.gov/rest/json/cves/2.0?resultsPerPage=1'` (or inspect `tests/fixtures/nvd_sample.json` offline). Locate ID, description, published date, score, severity. Read `nvd_client.py`: `params`, optional header, `timeout`, `raise_for_status`. **Type:** change only `resultsPerPage` in a local experiment. **Failures:** 429 = wait/use cache; 500 = upstream issue; timeout = network/slow service; invalid JSON = do not trust it. **Check:** explain status codes. **Commit:** `nvd api client`.
+### The request journey
 
-## Phase 7 — Normalise, cache and present (substantial)
-Upstream JSON is complex, so `normalise_cve` produces a small internal model. Cache means reuse a recent successful response: fresh is within TTL; stale is older but useful during failure. `write_cache` writes a temporary file then replaces it. **Task:** trace request from page to cache/API. **Experiment:** set a very short TTL and stop network access; observe stale warning. **Check:** no key in cache. **Commit:** `normalise and cache cves`.
+```text
+Your browser
+    │ HTTP/HTTPS request
+    ▼
+Nginx (public web server, later)
+    ▼
+Gunicorn (runs Python workers, later)
+    ▼
+Flask application ──► local cache file ──► NVD API / optional CISA KEV API
+    ▼
+HTML, CSS and JavaScript sent back to your browser
+```
 
-## Phase 8 — UX (medium)
-Read `dashboard.js`: it uses `textContent`, so external descriptions are displayed as text rather than interpreted as HTML. **Task:** test text, severity, minimum score, KEV, sort and clear; choose cards/table. **Check:** keyboard reaches every control and empty state appears. **Mistake:** relying only on colour. **Stretch:** dark mode. **Commit:** `add explorer filters`.
+### Rules, choices and evidence
 
-## Phase 9 — Tests and review (substantial)
-A test is repeatable evidence. Arrange data, Act, Assert outcome. Unit tests test one function; route tests test joined pieces; fixtures are safe saved data; mocks simulate failures. Run `pytest -q` and `ruff check .`. Complete [SECURITY_REVIEW.md](SECURITY_REVIEW.md) and manual plan in [TROUBLESHOOTING.md](TROUBLESHOOTING.md). **Check:** tests never call live NVD. **Commit:** `test and security review`.
+|Fixed core requirements|Your choices|
+|---|---|
+|Flask, NVD API, local OWASP JSON, safe output, tests, non-root deployment|Project name/logo text, accessible colour palette, OWASP layout, CVE card/table layout, summary metrics, priority order, one extension|
 
-## Phase 10 — Deploy/evaluate (substantial)
-Follow [deployment/DEPLOYMENT.md](deployment/DEPLOYMENT.md). **Check:** Nginx → Gunicorn → Flask works after logout/reboot; `/health` works; evidence screenshots/log snippets are saved. **Reflect:** one diagnosed problem and next feature. **Commit/tag:** `deploy v1` / `v1.0.0`.
+Keep a folder named `evidence` outside Git or a private classroom drive. Save command output, screenshots, test results, decision records and feedback there.
 
-## Extensions (easy → harder)
-Each must have a short design/test record: **concept, prerequisites, approach, risks, acceptance criteria.** 1 dark preference (localStorage; contrast; survives reload); 2 pagination (arrays; correct pages); 3 clickable bars (events; filter changes); 4 Chart.js (library; CSP/change control); 5 timer refresh (scheduling; avoid rate limits); 6 NVD keyword query (query validation; no huge queries); 7 published/modified comparison (dates; labels correct); 8 KEV enrichment (HTTP failures; badges); 9 CSV export (escaping; downloads); 10 SQLite watchlist (database; no secrets); 11 server filters (validation; tests); 12 another endpoint (API design; docs); 13 private basic auth (credentials; HTTPS); 14 CI (GitHub Actions; tests); 15 containers **after** deployment (isolation; complexity); 16 uptime monitor (observability; false alarms); 17 JSON logs (structured events; no secrets); 18 SBOM (dependencies; accuracy); 19 dependency scanning (advisories; triage); 20 accessibility audit (WCAG; evidence).
+### Decision record template
 
-## Responsible AI and AI log
-AI may explain errors/syntax, suggest tests, review a small function, produce fixture ideas, compare approaches, or improve prose. Do not ask it for the whole assessed project, share secrets, run unexplained commands, skip testing, assume security advice is correct, or hide use where disclosure is required. Log: **date | question | tool | useful response | verification | changed | learned**.
+```text
+Decision:
+Options considered:
+Choice:
+Reason:
+Trade-off or downside:
+What I tested:
+Result after testing:
+Date and initials:
+```
 
-## Team option and final demo
-For 2–3: backend/API; frontend/accessibility; infrastructure/testing/docs. Every person contributes code, test, documentation and deployment. Board: **Backlog | Ready | In progress | Review | Done**. Demo: dashboard, OWASP, live/cached CVEs, filters, failure, architecture, Git, tests, controls, a choice, diagnosis, next feature. Strong answer: “KEV is exploitation evidence; CVSS is technical severity; we still check our assets and exposure.”
+### Learning routine for every lesson
+1. Read **Why this matters** first.
+2. Watch or follow the **mentor demonstration**.
+3. Complete each numbered task. Type commands; do not blindly paste a whole lesson.
+4. Stop at the **checkpoint** and collect evidence.
+5. Answer the **reflection** in your own words.
+6. Try the **stretch** only when the core works.
+
+### Help ladder
+Before asking a person or AI, spend ten minutes on these steps: (1) read the exact error, (2) check the spelling and current folder, (3) use `git diff`, browser DevTools or a log, (4) search official documentation using the error wording, (5) write down what you tried. Ask for an explanation, not a complete replacement solution.
+
+---
+
+# Lesson 1 — Understand the problem and plan your dashboard
+**Effort:** short. **Suggested Git checkpoint:** `plan dashboard direction`.
+
+## Learning objectives
+By the end, you can explain CVE, CWE, CVSS, OWASP and CISA KEV in simple language; identify the project audience; and make a justified design choice.
+
+## Concept overview
+A **CVE** is an identifier such as `CVE-2026-0001` for a publicly reported vulnerability. A **CWE** names a class of weakness, for example a type of input-handling mistake. **CVSS** gives a standard technical score, normally 0–10. It is useful, but it does not know your organisation's systems, data or controls. **OWASP** publishes application-security education. **CISA KEV** is a US catalogue of vulnerabilities known to be exploited; absence from the catalogue is *not* proof that no exploitation exists.
+
+## Mentor demonstration
+Your mentor should compare two fictional records: one critical record for software the organisation does not use and one high record in a public, used system with KEV evidence. Notice why “highest score first” is an incomplete rule.
+
+## Tasks
+1. Write an audience statement: “This dashboard helps ___ decide ___ because ___.”
+2. Draw the home page on paper. Include a title, four number cards, severity bars, a “look first” explanation, and a recent-CVE list.
+3. Pick a name, font style and two main colours. Use an online contrast checker or browser DevTools to check text contrast. Do not use colour alone to mean “critical”.
+4. Complete a decision record for your OWASP layout: cards, accordion, table/detail panel, or vertical timeline. The reference app uses cards; changing it is an extension after the core works.
+
+## Checkpoint and reflection
+Show the sketch and decision record. Explain: “Why might a high CVSS score not be first priority?”
+**Common mistake:** saying KEV means every organisation is affected. It means there is exploitation evidence, not that your systems are vulnerable.
+
+**Stretch:** write a 50-word explanation of CyberScope for a school governor with no technical background.
+
+---
+
+# Lesson 2 — Meet your Ubuntu cloud server
+**Effort:** medium. **Suggested Git checkpoint:** `record server orientation`.
+
+## Why this matters
+A cloud instance is a remote virtual computer rented from a provider. You control it through a terminal. A **public IP address** can be reached from the internet; a **private IP address** is for internal networks. Treat the server like a real production system: use named users, record changes and avoid unnecessary exposure.
+
+## New words
+* **SSH (Secure Shell):** encrypted remote terminal connection.
+* **Key pair:** a private key kept secret on your computer and a public key installed on the server.
+* **Host key:** the server's identity fingerprint. Check it with the provider/mentor the first time.
+* **user:** an account with its own files and permissions.
+* **sudo:** “run this command with administrator privileges”. It is powerful, not a shortcut.
+
+## First connection
+Your mentor gives you a hostname or public IP, username and private-key file. In your own terminal, move to the folder containing the key. On Windows PowerShell, `cd` works too; on macOS/Linux use Terminal.
+
+```bash
+cd ~/Downloads
+ssh -i cyberscope-class.pem ubuntu@203.0.113.10
+```
+
+**What each part means:** `cd` changes folder; `-i` selects the identity/private-key file; `ubuntu@...` means “log in as ubuntu on this server”. The address above is documentation-only; use the address supplied by your mentor.
+
+If asked whether to trust an unknown host key, **stop and compare the fingerprint with your mentor/provider**. Do not accept a different fingerprint without investigation.
+
+### Commands you will practise
+
+|Command|Purpose|Example|What to look for|
+|---|---|---|---|
+|`pwd`|print current folder|`pwd`|Usually `/home/ubuntu`|
+|`ls -la`|list files, including hidden ones|`ls -la`|`.` means current; `..` parent|
+|`cd NAME`|enter a folder|`cd projects`|Prompt/folder changes|
+|`cd ..`|go up one level|`cd ..`|Useful after a mistake|
+|`mkdir NAME`|make a folder|`mkdir practice`|New folder appears in `ls`|
+|`cp A B`|copy file|`cp notes.txt notes-copy.txt`|Both files exist|
+|`mv A B`|move/rename|`mv notes-copy.txt old-notes.txt`|Old name disappears|
+|`cat FILE`|print small file|`cat notes.txt`|Use only for short text|
+|`less FILE`|read long file|`less /etc/ssh/sshd_config`|`q` quits|
+|`nano FILE`|simple terminal editor|`nano notes.txt`|`Ctrl+O`, Enter saves; `Ctrl+X` exits|
+|`grep TEXT FILE`|find text|`grep -n 'Port' /etc/ssh/sshd_config`|`-n` includes line numbers|
+|`tail -n 30 FILE`|last lines of a file|`tail -n 30 /var/log/...`|Useful for new log entries|
+|`whoami` / `id`|current user/permissions|`id`|Shows groups|
+|`ps aux`|running processes|`ps aux | grep gunicorn`|A pipe sends output to grep|
+|`ss -tulpn`|list listening network ports|`sudo ss -tulpn`|Check what is reachable|
+|`systemctl`|manage services|`systemctl status nginx`|Does not edit files|
+|`journalctl`|read service logs|`journalctl -u nginx -n 30`|`-u` selects a service|
+|`curl`|make an HTTP request|`curl -I http://127.0.0.1`|`-I` asks for headers|
+
+## Guided navigation challenge
+1. Run `pwd`. Copy the output into evidence.
+2. Run `mkdir -p ~/cyberscope-practice/notes`. `-p` creates needed parent folders too.
+3. Run `cd ~/cyberscope-practice/notes`, then `pwd`. Explain why this works from any starting folder: `~` means your home folder.
+4. Run `nano commands.txt`, type `I can navigate Linux.`, save and exit.
+5. Run `cat commands.txt`; then copy and rename it: `cp commands.txt copy.txt` and `mv copy.txt moved.txt`.
+6. Run `ls -la`, then `cd ..`, then `ls -la notes`.
+7. Clean up only your practice folder: `rm -r ~/cyberscope-practice`. `rm -r` permanently deletes a folder and its contents. Run `pwd` first and type the full path; never use it with a path you do not understand.
+
+## Checkpoint
+Run `whoami`, `id`, `ss -tulpn`, and `systemctl status ssh --no-pager`. A pager lets long output scroll; `--no-pager` prints it once. Explain which command tells you your current folder and which command tells you your identity.
+
+**Likely errors:** `No such file or directory` usually means the folder/file spelling is wrong; use `pwd` and `ls`. `Permission denied` means your user cannot perform that action; do not automatically add `sudo`—ask why permission is needed.
+
+---
+
+# Lesson 3 — Secure the starting point
+**Effort:** medium. **Suggested Git checkpoint:** `document basic server hardening`.
+
+## Why this matters
+A public server receives internet traffic. Least privilege means each user and service has only the access it needs. Do hardening one small reversible step at a time.
+
+## Tasks with verify and undo steps
+1. **Update the operating system.**
+   ```bash
+   sudo apt update
+   sudo apt upgrade
+   ```
+   `apt update` downloads a list of available package versions. `apt upgrade` installs updates. Verify that it finishes without errors. Undoing package updates is not usually simple; take a provider snapshot first if your mentor permits it.
+2. **Create the application account.**
+   ```bash
+   sudo adduser --system --group --home /srv/cyberscope cyberscope
+   id cyberscope
+   ```
+   This makes a non-login system user and group for the service. Verify its UID/group using `id`. If created in error before deployment, your mentor can remove it with `sudo deluser --remove-home cyberscope`.
+3. **Review SSH before changing it.**
+   ```bash
+   sudo less /etc/ssh/sshd_config
+   sudo sshd -t
+   ```
+   Look for `PasswordAuthentication` and `PermitRootLogin`. `sshd -t` checks syntax without applying changes. **Do not close the current session.** After a mentor-reviewed change, open a second SSH terminal and confirm key login works before reloading SSH: `sudo systemctl reload ssh`.
+4. **Set the firewall carefully.**
+   ```bash
+   sudo ufw allow OpenSSH
+   sudo ufw status numbered
+   sudo ufw enable
+   sudo ufw status verbose
+   ```
+   UFW is Ubuntu's firewall tool. First allowing `OpenSSH` prevents locking yourself out. Verify rules and status. Undo a specific accidental rule with `sudo ufw delete NUMBER`, using the number shown; emergency undo is `sudo ufw disable`, but tell your mentor.
+5. **Inspect ports.** Run `sudo ss -tulpn`. At this stage, only services you expect should listen. Later, allow Nginx HTTP/HTTPS rather than opening Gunicorn's internal port.
+
+## Reflection
+Why is running Gunicorn as `root` a poor choice? What is the safe rollback if a new SSH setting stops the second connection?
+**Stretch:** write a one-paragraph change record with purpose, command, verification and rollback for one firewall change.
+
+---
+
+# Lesson 4 — Install developer tools and start Git
+**Effort:** medium. **Suggested Git checkpoint:** `initial project structure`.
+
+## Concept overview
+**Git** records snapshots (commits) of work. It is not a backup for passwords: `.gitignore` tells Git which local files, such as `.env`, must not be added. A **repository** is the folder Git tracks. A **virtual environment** (`venv`) is an isolated folder containing Python packages for one project.
+
+## Install and check tools
+```bash
+sudo apt install -y git python3 python3-venv python3-pip curl
+python3 --version
+git --version
+curl --version
+```
+`-y` confirms the package manager question automatically. Check that each version command prints a version. If it does not, copy the exact error into evidence.
+
+## Get the project and create the environment
+```bash
+cd /srv
+sudo git clone YOUR_CLASS_REPOSITORY cyberscope-dashboard
+sudo chown -R "$USER":"$USER" /srv/cyberscope-dashboard
+cd /srv/cyberscope-dashboard
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+pip install -r requirements-dev.txt
+```
+`source` runs the activation script in the current shell. Your prompt normally starts with `(.venv)`. It does not modify Python globally. Leave it later with `deactivate`. If `pip` installs but `python` cannot import Flask, check whether the prompt has `(.venv)`.
+
+## Git guided tasks
+```bash
+git status
+git add README.md
+git commit -m "Explain project purpose"
+git log --oneline
+git diff
+git switch -c improve-readme
+# make one small documentation change
+git add README.md && git commit -m "Clarify local setup"
+git switch work
+git merge improve-readme
+```
+`git status` answers “what changed?”; `git add` chooses changes for the next snapshot; `git commit -m` records them with an explanation; `git diff` shows unstaged changes. If your branch name is not `work`, run `git branch --show-current` and substitute it.
+
+### Controlled merge-conflict exercise
+In a pair, both edit the same single sentence differently in separate branches. Merge one branch, then merge the other. Git places conflict markers. Read both versions, keep the intended text, remove the markers, `git add`, and commit. To reverse a bad *committed* change without rewriting history: `git revert COMMIT_ID`. Release the final tested version: `git tag -a v1.0.0 -m "First classroom release"`.
+
+**Never:** add `.env`, `*.pem`, downloaded keys or copied server secrets. Check `git status` before every `git add .`.
+
+---
+
+# Lesson 5 — Build and understand the first Flask pages
+**Effort:** medium. **Suggested Git checkpoint:** `add first Flask pages`.
+
+## What Flask, HTML and templates do
+A web request has a **method** (for example GET), a **URL**, headers and a response. Flask maps a URL to a Python function called a **route**. The route calls a template. A Jinja template is HTML with safe placeholders such as `{{ name }}`. CSS controls appearance; JavaScript adds small browser behaviour.
+
+## Run the reference application locally
+```bash
+source .venv/bin/activate
+python app.py
+```
+Open `http://127.0.0.1:5000`. `127.0.0.1` means “this computer only”. Do **not** run Flask's development server on `0.0.0.0` on a public server. Stop it with `Ctrl+C`.
+
+## Read before editing
+In `app.py`, find `@app.route("/")`. The `@` line is a decorator: it tells Flask which URL should call the function below it. In `templates/base.html`, find `{% block content %}`; child pages fill that named area. In `templates/index.html`, `{{ data.fetched_at }}` inserts a value and Jinja escapes text by default.
+
+## Guided small change
+1. Open `templates/index.html` using `nano`.
+2. Under the introductory paragraph, type one sentence explaining your chosen audience. This is **your code/text**, not starter code.
+3. Save, refresh the browser, then use browser DevTools: right-click the sentence → Inspect.
+4. Change one CSS colour in `static/css/styles.css`, refresh, and use the DevTools Elements/Styles panel to see the applied rule.
+5. Run `curl -i http://127.0.0.1:5000/health`. Identify the `HTTP/` status line and JSON body.
+
+**Experiment A:** change `/health` to a nonexistent URL in curl; notice `404`. **Experiment B:** deliberately remove a closing Jinja brace, reload, read the error locally, restore it immediately. Production visitors receive a generic error page, not a traceback.
+
+**Likely errors:** `Address already in use` means another process owns port 5000; use `ss -tulpn | grep 5000` and stop only your process. `TemplateNotFound` usually means wrong filename/folder. A browser cache can hide CSS changes; hard refresh with Ctrl+Shift+R.
+
+---
+
+# Lesson 6 — Model OWASP Top 10 content
+**Effort:** medium. **Suggested Git checkpoint:** `display OWASP teaching data`.
+
+## Why local JSON?
+JSON is a text data format using objects `{}` and lists `[]`. The project keeps OWASP material in `data/owasp_top_10.json`, rather than scraping a webpage every request. That makes lessons reliable and lets a maintainer review wording. The source file labels official summaries separately from student-friendly explanations.
+
+## Read the data
+Open it with `less data/owasp_top_10.json`. Find `edition`, `categories`, an `id`, `name`, `explanation`, `example`, `impact`, `prevention`, `url`, and `cwes`. A comma separates fields; strings require quotation marks. Run:
+```bash
+python -m json.tool data/owasp_top_10.json > /dev/null
+echo $?
+```
+Exit code `0` means valid JSON. If invalid, Python prints a line/column. Go to that line and look for a missing comma, quote or bracket.
+
+## Guided task
+1. Visit `/owasp` and locate one category.
+2. In the matching JSON item, improve **one** student explanation in plain English. Keep the meaning accurate and do not invent a claim about OWASP.
+3. Refresh `/owasp`; check the card, link text and keyboard tab order.
+4. Add a decision record explaining why you retained cards or chose a different layout.
+
+### Maintenance process
+Before a future update, read the official OWASP Top 10 project, record the date and edition, compare categories, update the local JSON and links, label any student-written text, validate JSON, test `/owasp`, ask another person to review, then commit with a clear message. Never scrape OWASP at runtime.
+
+---
+
+# Lesson 7 — Learn APIs with NVD fixtures and `curl`
+**Effort:** substantial. **Suggested Git checkpoint:** `learn NVD API request`.
+
+## API vocabulary
+An **API** is an agreed way for programs to exchange information. An **endpoint** is an API URL. A **query parameter** adds a choice after `?`, for example `?resultsPerPage=1`. A **header** carries request metadata. A **status code** reports result: 200 successful, 400 invalid request, 401/403 access issue, 404 absent, 429 rate limit, 500 server fault. JSON can nest lists and dictionaries.
+
+## Exercise A: make a small manual request
+When network access is permitted, run:
+```bash
+curl -i 'https://services.nvd.nist.gov/rest/json/cves/2.0?resultsPerPage=1'
+```
+`-i` includes response headers. Find the first `HTTP` status, `Content-Type`, then the JSON body. Do not repeatedly run it: unauthenticated NVD requests are rate limited. If the classroom network blocks it, use the saved fixture below—this is a valid offline learning route.
+
+## Exercise B: inspect a saved response
+```bash
+python -m json.tool tests/fixtures/nvd_sample.json | less
+```
+Find `CVE-2026-0001`, the English `description`, `published`, `baseScore`, and `baseSeverity`. Notice that `vulnerabilities` is a list, then each item has a `cve` dictionary. `tests/fixtures` is controlled sample data, not live data.
+
+## Exercise C: request from Python
+Read `services/nvd_client.py`. The important starter code is:
+```python
+response = requests.get(NVD_URL, params=parameters, headers=headers, timeout=timeout)
+response.raise_for_status()
+payload = response.json()
+```
+`requests.get` sends HTTP GET. `params` becomes query parameters safely. `timeout` prevents waiting forever. `raise_for_status` turns bad HTTP status into an exception. `.json()` parses JSON. **Do not type an API key into this file.** The app reads `NVD_API_KEY` from an environment variable.
+
+**Controlled experiments:** (1) in a scratch Python file, print `response.status_code` after a permitted one-record request; (2) set `timeout=0.001` only in a local experiment and observe error handling, then restore it.
+**Likely errors:** 429 means wait and use cache, not a loop; invalid JSON should be handled as unavailable data; 500 is usually upstream; a timeout may be network or service delay.
+
+---
+
+# Lesson 8 — Normalise, cache and enrich CVEs
+**Effort:** substantial. **Suggested Git checkpoint:** `normalise cache and enrich Cves`.
+
+## Why a normalisation layer exists
+NVD's full JSON is designed for many uses. Templates only need a small model. `services/normalisers.py` converts each record to `id`, `description`, dates, score, severity, CVSS version, CWEs, NVD URL and optional KEV details. It carefully handles missing English text, no score and no CWE. Do not pass an entire external response directly into templates.
+
+## Read one function line-by-line
+```python
+metric = next((metrics[key][0] for key in (...) if metrics.get(key)), {})
+score = cvss.get("baseScore")
+```
+`next(..., {})` takes the first available metric or safely uses an empty dictionary. `.get` returns `None` instead of crashing when a key is absent. This is starter code. Your task is to explain it in a comment or notebook, not rewrite it from memory.
+
+## Cache concepts
+A cache is a saved successful result. It improves speed and respects rate limits. `CACHE_TTL_SECONDS` decides how long data is **fresh** (default 30 minutes). After that, the app tries NVD. If NVD fails and old data exists, it shows **stale** cached data and a warning. `write_cache` writes a temporary file then replaces it so a crash does not leave half JSON. It never stores the API key. Production systems might use Redis/database because multiple servers need shared, managed storage.
+
+## Guided tasks
+1. Create local configuration without committing it: `cp .env.example .env`. Read the comments. Leave `NVD_API_KEY` blank; the app must work without it.
+2. Populate a known cache from the fixture:
+   ```bash
+   python - <<'PY'
+   import json
+   from pathlib import Path
+   from services.cache import write_cache
+   from services.normalisers import normalise_response
+   write_cache(Path('instance/cache/cves.json'), normalise_response(json.loads(Path('tests/fixtures/nvd_sample.json').read_text())))
+   PY
+   ```
+   This is provided classroom setup code. Read it: it loads JSON, normalises it, then writes cache data.
+3. Run the app and visit `/`, `/cves`, `/api/cves`. Confirm fixture data appears.
+4. Set `CACHE_TTL_SECONDS=1` in your shell (`export CACHE_TTL_SECONDS=1`), restart the app, wait two seconds and disconnect/disable external access only if your mentor approves. Observe the stale warning when upstream data cannot refresh. Restore the default by closing that terminal or `unset CACHE_TTL_SECONDS`.
+5. Explain why the CISA client catches failures and still returns CVEs.
+
+---
+
+# Lesson 9 — Make the CVE explorer usable and safe
+**Effort:** medium. **Suggested Git checkpoint:** `add search filters and accessible UX`.
+
+## Browser filtering
+The server supplies a normalised list. `static/js/dashboard.js` filters the list in the browser by search, severity, minimum score and KEV flag, then sorts it. This is suitable for a small teaching data set. Larger data needs pagination/server-side filtering.
+
+### Critical security detail
+API descriptions are external input. Inserting it with `innerHTML` can make the browser interpret markup. The reference creates elements and uses `textContent`, which displays data as text. Keep this behaviour. Jinja also escapes `{{ values }}` by default.
+
+## Guided tasks
+1. Open `/cves`. Search an identifier, choose each severity, set a minimum score, tick KEV-only, change sort and press Clear filters.
+2. Use Tab, Shift+Tab, Enter and Space only. Can you open navigation, use every form control and read the result-count update?
+3. Use responsive mode in DevTools (or shrink browser under 650px). Open and close Menu. Check text does not overlap and focus outline is visible.
+4. Add one plain-English empty-state sentence or improve an accessible label. Test it with a deliberately non-matching search.
+5. Inspect `dashboard.js` and identify the line using `textContent`. Explain why a description containing angle brackets is displayed, rather than run.
+
+**Common mistakes:** hiding focus outlines; using red/green without words; changing `textContent` to `innerHTML`; assuming “not scored” means low risk.
+
+---
+
+# Lesson 10 — Test, debug and security-review
+**Effort:** substantial. **Suggested Git checkpoint:** `test and security review`.
+
+## What tests are
+A test is repeatable evidence. **Arrange** creates inputs; **Act** calls code; **Assert** checks expected output. Unit tests check a small unit such as a normaliser. Route tests check Flask responses. Fixtures provide predictable data. Mocks replace a live dependency to simulate timeout/failure. Tests must not depend on a live public API because its data/network can change.
+
+## Run and read tests
+```bash
+source .venv/bin/activate
+pytest -q
+ruff check .
+```
+`-q` means quieter output. `ruff` checks style and likely mistakes. Read `tests/test_normalisers.py`, then identify Arrange, Act and Assert. Read `tests/test_cache.py`: `monkeypatch` temporarily replaces the network function so failure is safe and repeatable.
+
+## Guided test task
+Add one test for `/api/cves?severity=HIGH` using the fixture/cache pattern in `test_routes.py`. First predict expected count, run the test, then make it pass. Do not call NVD from the test. Commit only when the full suite passes.
+
+## Manual test record
+For each item write expected/actual/evidence/fix commit: desktop, mobile, keyboard, search, each filter, empty result, stale cache, broken upstream data, broken link, DevTools Console, Nginx reload, app restart, and `/health`.
+
+## Security self-review
+Complete `SECURITY_REVIEW.md`. Check headers locally:
+```bash
+curl -I http://127.0.0.1:5000/
+git status
+git grep -n 'NVD_API_KEY'
+```
+The first checks response headers. The second checks accidental files. The third finds key *references*, not keys; verify no real value is tracked. Explain CSP, referrer policy, MIME sniffing protection, permissions policy and frame protection in your own words.
+
+---
+
+# Lesson 11 — Deploy with Gunicorn, systemd and Nginx
+**Effort:** substantial. **Suggested Git checkpoint:** `deploy CyberScope securely`; **release tag:** `v1.0.0`.
+
+Follow `deployment/DEPLOYMENT.md` in order with your mentor. This workbook explains the why; that guide gives exact verified commands and rollback. Do not skip the second SSH connection/firewall checks.
+
+## Production terms
+* **Gunicorn:** production server that runs Flask worker processes; bind it to `127.0.0.1:8000`, not public internet.
+* **systemd:** Ubuntu service manager. It starts Gunicorn after reboot and keeps logs.
+* **Nginx:** public reverse proxy. It receives web traffic, serves as a controlled front door and forwards to Gunicorn.
+* **UFW:** host firewall. Allow SSH and Nginx HTTP/HTTPS only.
+* **HTTPS:** encryption between browser and Nginx. A public trusted certificate needs a valid domain pointing at the server; a bare private IP normally cannot receive one.
+
+## Deployment checklist
+1. Create the `cyberscope` non-root service user and `/srv/cyberscope-dashboard` directory with correct ownership.
+2. Clone the repository, create `/srv/cyberscope-dashboard/.venv`, install pinned requirements.
+3. Put secrets only in `/etc/cyberscope/cyberscope.env`, owned root and readable by the service group; never in Git.
+4. Test Gunicorn manually from a second terminal with `curl http://127.0.0.1:8000/health`.
+5. Copy the provided systemd service, run `daemon-reload`, enable/start, inspect `systemctl status` and `journalctl -u cyberscope`.
+6. Copy Nginx configuration, set the real domain, run `sudo nginx -t` **before** reload, then reload and test public routes/static CSS.
+7. Apply UFW Nginx rule after confirming SSH safety. Check `ss -tulpn`.
+8. If a domain exists, obtain/test Certbot HTTPS; otherwise document HTTP/private-classroom limitation.
+9. Reboot only after mentor approval and prove the service returns after reboot.
+10. Practise update/rollback: record commit, update in a branch, test, restart, health-check; return to recorded commit if it fails.
+
+---
+
+# Lesson 12 — Present, evaluate and extend
+**Effort:** medium. **Suggested Git checkpoint:** `document final evaluation`.
+
+## Final demonstration checklist
+Demonstrate: (1) dashboard, (2) OWASP content, (3) live/recent cached CVEs, (4) search/filter, (5) failure handling, (6) request architecture, (7) Git history, (8) tests, (9) security controls, (10) one design decision, (11) one diagnosed problem, (12) next feature.
+
+### Likely questions and strong answers
+* **Why cache?** “It makes pages faster and reduces NVD rate-limit pressure. If NVD fails, we label older data as stale rather than pretending it is fresh.”
+* **Why Nginx and Gunicorn?** “Nginx is the public reverse proxy. Gunicorn runs Flask privately on localhost. This avoids exposing the development server.”
+* **How did you handle untrusted descriptions?** “Jinja escapes template values and our JavaScript uses `textContent`, not `innerHTML`.”
+* **What would you add?** Name an extension, its risk and its acceptance test.
+
+## Optional extension cards (easy to harder)
+For every extension, write: **new concept, prerequisite, approach, risk, acceptance criteria**.
+1. Dark mode — localStorage; contrast; survives reload.
+2. Pagination — arrays; accurate page controls; handles empty page.
+3. Clickable severity bars — events; matching filter changes.
+4. Chart.js — third-party library/CSP; chart has text alternative.
+5. Scheduled refresh — systemd timer; no repeated rate-limit requests.
+6. NVD keyword/product search — query validation; bounded results.
+7. Published vs modified — date handling; labels clear.
+8. CISA KEV enrichment — optional HTTP client; outage still shows CVEs.
+9. CSV export — escaping; download matches filters.
+10. SQLite watchlist — database basics; no secrets/unsafe queries.
+11. Server-side filters — validated query parameters; automated tests.
+12. Another JSON endpoint — API design; documented status/errors.
+13. Private classroom authentication — credentials; HTTPS required.
+14. CI workflow — GitHub Actions; tests run on push.
+15. Containerisation — only after non-container deployment; explain new complexity.
+16. Monitoring — uptime endpoint; useful alert, not alert noise.
+17. Structured JSON logs — observability; no keys/personal data.
+18. SBOM — dependency inventory; explain limits.
+19. Dependency scanning — advisory triage; documented update choice.
+20. Accessibility audit — WCAG evidence; keyboard, contrast and semantic fixes.
+
+---
+
+# Appendix A — Challenge cards
+
+1. **No CVSS score:** a card has no score. *Hints:* inspect `None`; use the existing fallback. *Success:* “Not scored” and no crash. *Practises:* optional data.
+2. **HTTP 429:** NVD limits you. *Hints:* status, TTL, cache. *Success:* friendly warning/no retry loop. *Practises:* rate limits.
+3. **Timeout:** network stalls. *Hints:* timeout and mock. *Success:* cache fallback. *Practises:* resilience.
+4. **Special characters:** description has markup characters. *Hints:* text node/Jinja. *Success:* text appears literally. *Practises:* XSS prevention.
+5. **Stale cache:** data is older than TTL. *Hints:* timestamp/environment. *Success:* visible stale message. *Practises:* cache states.
+6. **Extra port:** UFW has unnecessary rule. *Hints:* numbered rules. *Success:* exact rule removed and SSH retained. *Practises:* firewall safety.
+7. **Manual works, systemd fails:** *Hints:* journal, user/path. *Success:* service starts after a documented correction. *Practises:* service context.
+8. **Mobile break:** navigation overlaps. *Hints:* responsive DevTools/media query. *Success:* menu/controls usable at 320px. *Practises:* responsive CSS.
+9. **No matches:** filter combination returns zero. *Hints:* result message/clear. *Success:* user understands how to recover. *Practises:* UX.
+10. **New OWASP edition:** *Hints:* maintenance process. *Success:* reviewed local JSON update, validation and commit. *Practises:* content maintenance.
+11. **Dependency advisory:** *Hints:* pinned version/test branch. *Success:* evidenced update or documented risk decision. *Practises:* supply chain.
+12. **Explain priority:** manager asks CVSS vs KEV. *Hints:* severity/exploitation/context. *Success:* accurate 30-second answer. *Practises:* communication.
+
+# Appendix B — Responsible AI assistance log
+
+AI may explain errors, unfamiliar syntax, test ideas, a small function, fixtures, options and documentation. It must not write the assessed project without your understanding; receive secrets; authorise unexplained commands; replace testing; or be treated as certain security advice. Follow your provider/course disclosure rules.
+
+|Date|Question asked|Tool|Useful response|What I verified|What I changed|What I learned|
+|---|---|---|---|---|---|---|
+| | | | | | | |
